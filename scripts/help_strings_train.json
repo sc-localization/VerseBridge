@@ -1,0 +1,18 @@
+{
+  "ru": {
+    "description": "Запуск пайплайна обучения модели\n\nОбучает модель перевода с поддержкой LoRA.",
+    "epilog": "Пример: python3 -m scripts.run_training --with_lora --model_path models/lora/result",
+    "src_lang_help": "Код исходного языка (ISO 639-1, например, 'en').\nПо умолчанию: 'en'.",
+    "tgt_lang_help": "Код целевого языка (ISO 639-1, например, 'ru').\nПо умолчанию: 'ru'.",
+    "with_lora_help": "Использовать LoRA при обучении.",
+    "model_path_help": "Путь к модели (пкть к чекпоинтам или результируешей модели после обучения). По умолчанию — базовая модель."
+  },
+  "en": {
+    "description": "Run model training pipeline\n\nTrains a translation model with LoRA support.",
+    "epilog": "Example: python3 -m scripts.run_training --with_lora --model_path models/lora/result",
+    "src_lang_help": "Source language code (ISO 639-1, e.g., 'en').\nDefault: 'en'.",
+    "tgt_lang_help": "Target language code (ISO 639-1, e.g., 'ru').\nDefault: 'ru'.",
+    "with_lora_help": "Apply LoRA during training.",
+    "model_path_help": "Path to the model (pretrained name, result path, or checkpoint path). Defaults to pretrained base model."
+  }
+}
