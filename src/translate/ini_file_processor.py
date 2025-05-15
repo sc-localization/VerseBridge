@@ -1,0 +1,176 @@
+import os
+from pathlib import Path
+from tqdm import tqdm
+from typing import Set, Tuple
+
+
+from src.config import ConfigManager
+from src.utils import FileUtils
+from src.type_defs import (
+    ExcludeKeysType,
+    INIDataType,
+    TranslatorCallableType,
+    LoggerType,
+)
+from .text_processor import TextProcessor
+from .buffered_file_writer import BufferedFileWriter
+
+
+class IniFileProcessor:
+    def __init__(
+        self,
+        config: ConfigManager,
+        text_processor: TextProcessor,
+        logger: LoggerType,
+    ):
+        self.config = config
+        self.logger = logger
+        self.text_processor = text_processor
+        self.file_utils = FileUtils(logger=logger)
+
+    def _should_translate(
+        self,
+        key: str,
+        value: str,
+        translated_lines: INIDataType,
+        exclude_keys: ExcludeKeysType,
+    ) -> bool:
+        """
+        Checks if a key-value pair should be translated.
+
+        Args:
+            key (str): The key to check.
+            value (str): The value to check.
+            translated_lines (INIDataType): The translated lines.
+            exclude_keys (ExcludeKeysType): The keys to exclude from translation.
+
+        Returns:
+            bool: True if the key-value pair should be translated, False otherwise.
+        """
+        return key not in translated_lines and key not in exclude_keys and bool(value)
+
+    def process_line(
+        self,
+        key: str,
+        value: str,
+        translator: TranslatorCallableType,
+        translated_lines: INIDataType,
+        exclude_keys: ExcludeKeysType,
+    ) -> str:
+        """
+        Processes a line by translating its value if necessary.
+
+        Args:
+            key (str): The key of the line.
+            value (str): The value of the line.
+            translator (TranslatorCallableType): A callable for translating the text.
+            translated_lines (INIDataType): A dictionary containing already translated lines.
+            exclude_keys (ExcludeKeysType): A tuple of keys to exclude from translation.
+
+        Returns:
+            str: The processed line in the format 'key=value'.
+        """
+        if self._should_translate(key, value, translated_lines, exclude_keys):
+            translated_value: str = self.text_processor.translate_text(value, translator)
+        else:
+            translated_value: str = translated_lines.get(key, value)
+
+        translated_lines[key] = translated_value
+
+        return f"{key}={translated_value}\n"
+
+    def _read_files(
+        self, source_path: Path, destination_path: Path
+    ) -> Tuple[INIDataType, INIDataType]:
+        """
+        Reads key-value pairs from source and destination INI files.
+
+        Args:
+            source_path (Path): Path to the source INI file.
+            destination_path (Path): Path to the destination INI file.
+
+        Returns:
+            Tuple[INIDataType, INIDataType]: A tuple containing the source and destination key-value pairs.
+        """
+        try:
+            source_items: INIDataType = self.file_utils.parse_ini_file(source_path)
+
+            self.logger.debug(
+                f"Read {len(source_items)} key-value pairs from {source_path}"
+            )
+
+            dest_items: INIDataType = {}
+
+            if os.path.exists(destination_path):
+                dest_items = self.file_utils.parse_ini_file(destination_path)
+
+            self.logger.debug(
+                f"Read {len(dest_items)} key-value pairs from {destination_path}"
+            )
+
+            return source_items, dest_items
+        except Exception as e:
+            self.logger.error(f"Failed to read files: {str(e)}")
+            raise
+
+    def _compare_keys(
+        self,
+        source_items: INIDataType,
+        dest_items: INIDataType,
+    ) -> Tuple[Set[str], Set[str]]:
+        """
+        Compares the keys of two dictionaries and returns two sets:
+        1. missing_keys: The set of keys present in source_items but not in dest_items.
+        2. obsolete_keys: The set of keys present in dest_items but not in source_items.
+
+        Args:
+            source_items (INIDataType): The dictionary of source items.
+            dest_items (INIDataType): The dictionary of destination items.
+
+        Returns:
+            Tuple[Set[str], Set[str]]: A tuple containing the missing and obsolete keys.
+        """
+        source_keys: Set[str] = set(source_items.keys())
+        dest_keys: Set[str] = set(dest_items.keys())
+
+        missing_keys: Set[str] = source_keys - dest_keys
+        obsolete_keys: Set[str] = dest_keys - source_keys
+
+        self.logger.info(f"Found {len(missing_keys)} new keys for translation")
+        self.logger.info(f"Found {len(obsolete_keys)} obsolete keys to remove")
+
+        return missing_keys, obsolete_keys
+
+    def translate_file(
+        self,
+        source_file_path: Path,
+        destination_file_path: Path,
+        translator: TranslatorCallableType,
+    ) -> None:
+        self.logger.info(f"Translating file: {source_file_path}")
+
+        source_items, dest_items = self._read_files(
+            source_file_path, destination_file_path
+        )
+        _, obsolete_keys = self._compare_keys(source_items, dest_items)
+
+        with BufferedFileWriter(
+            destination_file_path,
+            self.config.translation_config.buffer_size,
+            self.logger,
+        ) as writer:
+            for key, value in tqdm(
+                source_items.items(), desc="Translating INI", total=len(source_items)
+            ):
+                if key in obsolete_keys:
+                    continue
+
+                translated_line = self.process_line(
+                    key,
+                    value,
+                    translator,
+                    dest_items,
+                    self.config.translation_config.exclude_keys,
+                )
+
+                writer.write(translated_line)

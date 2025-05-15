@@ -1,0 +1,45 @@
+[project]
+name = "versebridge"
+version = "0.1.0"
+description = "A text translation tool for games"
+authors = [{ name = "mvoof" }]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "bert-score>=0.3.13",
+    "datasets>=3.6.0",
+    "nltk>=3.9.1",
+    "peft>=0.15.2",
+    "sacrebleu>=2.5.1",
+    "tensorboard>=2.19.0",
+    "torch>=2.7.0",
+    "transformers>=4.51.3",
+]
+
+[dependency-groups]
+dev = ["mypy>=1.15.0", "pytest>=8.3.5"]
+
+
+[project.urls]
+Homepage = "https://github.com/sc-localization/VerseBridge"
+
+[tool.pytest.ini_options]
+pythonpath = "."
+
+[tool.mypy]
+strict = true
+warn_return_any = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+show_error_codes = true
+pretty = true
+exclude = ["tests/**", ".venv/**"]
+
+[tool.pyright]
+typeCheckingMode = "strict"
+exclude = ["tests/**", ".venv/**"]
+ignore = ["tests/**"]
+reportPrivateImportUsage = false
+reportMissingTypeStubs = false
+reportUnknownMemberType = false
+reportUnknownVariableType = false
