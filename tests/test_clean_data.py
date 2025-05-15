@@ -24,24 +24,24 @@ def json_cleaner(tokenizer):
 @pytest.mark.parametrize(
     "input_text, remove_patterns, expected",
     [
-        # Базовые случаи без удаления шаблонов
+        # Basic cases without removing patterns
         ("Welcome to ~mission(Location)", False, "Welcome to ~mission(Location)"),
         ("Press #~action(Button)", False, "Press #~action(Button)"),
-        # Удаление шаблонов
+        # Removing patterns
         ("Welcome to ~mission(Location)", True, "Welcome to"),
         ("Press #~action(Button)", True, "Press"),
-        # Обработка переносов строк
+        # Processing line breaks
         ("Line1\\nLine2", False, "Line Line"),
         ("Line 3\\nLine 4", False, "Line 3 Line 4"),
         ("Double\\\\n", False, "Double"),
-        # Очистка пробелов
+        # Clearing spaces
         ("   Hello   ", False, "Hello"),
         ("Line  \n  next", False, "Line next"),
         ("Release \nRelease", False, "Release Release"),
-        # HTML сущности
+        # HTML entities
         ("<>&amp;", False, ""),
         ("test&nbsp;test", False, "test test"),
-        # Символы и пунктуация
+        # Symbols and punctuation
         ("“quotes”", False, '"quotes"'),
         ("Mixed… dots…", False, "Mixed... dots..."),
         ("**bold**", False, "bold"),
@@ -69,7 +69,7 @@ def json_cleaner(tokenizer):
             False,
             "Any strange (symbols) between words!",
         ),
-        # Граничные условия
+        # Edge cases
         ("", False, ""),
         (None, False, ""),
         ("\n\n\n", False, ""),
@@ -124,15 +124,14 @@ def test_clean_text_complex(json_cleaner, input_text, remove_patterns, expected)
 @pytest.mark.parametrize(
     "source_text, target_text, expected",
     [
-        # Базовые случаи
-        ("Hello world", "world", True),  # "world" есть в source_text
-        ("Hello world", "planet", False),  # "planet" нет в source_text
-        ("Привет мир", "мир", True),  # "мир" есть в source_text
-        ("Привет мир", "hello", False),  # "hello" нет в source_text
-        ("Mixed case", "mixed", True),  # Регистр не важен
-        ("Numbers 123", "123", False),  # Числа игнорируются
-        ("", "test", False),  # Пустой source_text
-        ("test", "", False),  # Пустой target_text
+        ("Hello world", "world", True),  # "world" is in source_text
+        ("Hello world", "planet", False),  # "planet" is not in source_text
+        ("Привет мир", "мир", True),  # "мир" is in source_text
+        ("Привет мир", "hello", False),  # "hello" is not in source_text
+        ("Mixed case", "mixed", True),  # ignore case
+        ("Numbers 123", "123", False),  # ignore numbers
+        ("", "test", False),  # empty source_text
+        ("test", "", False),  # empty target_text
     ],
 )
 def test_contains_foreign_words_basic(json_cleaner, source_text, target_text, expected):
@@ -142,14 +141,14 @@ def test_contains_foreign_words_basic(json_cleaner, source_text, target_text, ex
 @pytest.mark.parametrize(
     "source_text, target_text, expected",
     [
-        # Сложные случаи
-        ("Hello world", "[IGNORE] world", True),  # Шаблоны удаляются
-        ("Hello world", "<div>world</div>", True),  # HTML теги удаляются
-        ("Hello world", "%VAR world", True),  # Переменные удаляются
-        ("Hello world", "world %VAR", True),  # Переменные удаляются
-        ("Hello world", "test123", False),  # Слова с числами игнорируются
-        ("Hello world", "hello-world", True),  # Дефисы учитываются
-        ("Hello world", "hello_world", False),  # Подчеркивания игнорируются
+        # Complex cases
+        ("Hello world", "[IGNORE] world", True),  # Patterns are removed
+        ("Hello world", "<div>world</div>", True),  # HTML tags are removed
+        ("Hello world", "%VAR world", True),  # Variables are removed
+        ("Hello world", "world %VAR", True),  # Variables are removed
+        ("Hello world", "test123", False),  # Words with numbers are ignored
+        ("Hello world", "hello-world", True),  # Dashes are taken into account
+        ("Hello world", "hello_world", False),  # Underscores are ignored
     ],
 )
 def test_contains_foreign_words_complex(
@@ -161,13 +160,13 @@ def test_contains_foreign_words_complex(
 @pytest.mark.parametrize(
     "source_text, target_text, expected",
     [
-        # Граничные случаи
-        ("", "", False),  # Оба текста пустые
-        ("   ", "test", False),  # Только пробелы в source_text
-        ("test", "   ", False),  # Только пробелы в target_text
-        ("Hello world", "hello, world!", True),  # Знаки препинания удаляются
-        ("Hello world", "WORLD", True),  # Регистр не важен
-        ("Hello world", "hello123", False),  # Числа игнорируются
+        # Edge cases
+        ("", "", False),  # Both texts are empty
+        ("   ", "test", False),  # Only spaces in source_text
+        ("test", "   ", False),  # Only spaces in target_text
+        ("Hello world", "hello, world!", True),  # Punctuation is removed
+        ("Hello world", "WORLD", True),  # Case is ignored
+        ("Hello world", "hello123", False),  # Numbers are ignored
     ],
 )
 def test_contains_foreign_words_edge_cases(
@@ -179,12 +178,12 @@ def test_contains_foreign_words_edge_cases(
 @pytest.mark.parametrize(
     "source_text, target_text, expected",
     [
-        # Шаблоны в target_text
-        ("Hello world", "[IGNORE] world", True),  # Удаление квадратных скобок
-        ("Hello world", "<div>world</div>", True),  # Удаление HTML тегов
-        ("Hello world", "%VAR world", True),  # Удаление переменных
-        ("Hello world", "~action(world)", False),  # Удаление с ~
-        ("Hello world", "#~mission(world)", False),  # Удаление с #~
+        # Patterns in target_text
+        ("Hello world", "[IGNORE] world", True),  # Removing square brackets
+        ("Hello world", "<div>world</div>", True),  # Removing HTML tags
+        ("Hello world", "%VAR world", True),  # Removing variables
+        ("Hello world", "~action(world)", False),  # Removing with ~
+        ("Hello world", "#~mission(world)", False),  # Removing with #~
     ],
 )
 def test_contains_foreign_words_pattern_removal(
