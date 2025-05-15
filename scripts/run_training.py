@@ -55,7 +55,7 @@ def parse_args():
         help=help_strings["tgt_lang_help"],
     )
     parser.add_argument(
-        "--with_-ora",
+        "--with-ora",
         action="store_true",
         help=help_strings["with_lora_help"],
     )
