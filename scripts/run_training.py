@@ -24,7 +24,6 @@ def needs_preprocessing(config: ConfigManager, logger: LoggerType) -> bool:
 
 
 def parse_args():
-    # Инициализация логгера для FileUtils
     logger = AppLogger("cli_parser").get_logger
     system_utils = SystemUtils()
     help_utils = HelpUtils()

@@ -5,7 +5,6 @@ from src.config import ConfigManager
 
 @pytest.fixture
 def protected_patterns():
-    """Возвращает protected_patterns из TranslationConfig."""
     return ConfigManager().translation_config.protected_patterns
 
 

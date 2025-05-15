@@ -61,24 +61,24 @@ class MetricsCalculator:
         decoded_preds_words = [pred.split() for pred in decoded_preds_clean]
         decoded_labels_words = [label.split() for label in decoded_labels_clean]
 
-        # Вычисление BLEU
+        # BLEU
         bleu_result = sacrebleu.corpus_bleu(
             decoded_preds_clean, [decoded_labels_clean]
         ).score
 
-        # Вычисление ChrF
+        # ChrF
         chrf_result = sacrebleu.corpus_chrf(
             decoded_preds_clean, [decoded_labels_clean]
         ).score
 
-        # Вычисление METEOR
+        # METEOR
         meteor_scores = [
             meteor_score([ref], pred)
             for pred, ref in zip(decoded_preds_words, decoded_labels_words)
         ]
         meteor_avg = float(np.mean(meteor_scores) * 100)
 
-        # Вычисление BERTScore
+        # BERTScore
         P, R, F1 = bert_score(  # type: ignore
             decoded_preds_clean,
             decoded_labels_clean,

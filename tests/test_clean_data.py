@@ -8,13 +8,11 @@ from src.preprocess.json_cleaner import JsonCleaner
 
 @pytest.fixture
 def tokenizer():
-    """Фикстура для токенизатора."""
     return AutoTokenizer.from_pretrained("facebook/nllb-200-distilled-1.3B")
 
 
 @pytest.fixture
 def json_cleaner(tokenizer):
-    """Фикстура для JsonCleaner."""
     return JsonCleaner(
         tokenizer=tokenizer,
         protected_patterns=ConfigManager().translation_config.protected_patterns,
@@ -85,7 +83,6 @@ def test_clean_text(json_cleaner, input_text, remove_patterns, expected):
 @pytest.mark.parametrize(
     "input_text, remove_patterns, expected",
     [
-        # Комплексные сценарии
         (
             "%REMOVE%\n~action()\n<div>Hello&nbsp;world…</div>\n\n\nPrice: 100 aUEC\n-----",
             False,

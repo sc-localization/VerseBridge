@@ -90,23 +90,19 @@ class FileUtils:
         self.logger.debug(f"Copying files from {src_path} to {dest_path}...")
 
         try:
-            # Проверяем, что dest_path является или будет директорией
             if dest_path.exists() and not dest_path.is_dir():
                 self.logger.error(
                     f"Destination path {dest_path} is a file, not a directory"
                 )
                 raise ValueError(f"Destination path {dest_path} must be a directory")
 
-            # Очищаем целевую директорию, если она существует
             if dest_path.exists():
                 self.logger.debug(f"Clearing existing directory: {dest_path}")
                 shutil.rmtree(dest_path)
 
-            # Создаем целевую директорию
             dest_path.mkdir(parents=True, exist_ok=True)
 
             if src_path.is_file():
-                # Копируем файл в директорию с сохранением имени
                 dest_file = dest_path / src_path.name
 
                 self._copy_file(src_path, dest_file)

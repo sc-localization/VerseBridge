@@ -239,7 +239,6 @@ class JsonCleaner:
                 self.removed_count["same_lang"] += 1
                 continue
 
-            # TODO: добавить padding=True, truncation=True, max_length=128 так как соотношени сильно отличается
             source_tokens = self.tokenizer(
                 source_text, add_special_tokens=True, padding=True, truncation=True
             )["input_ids"]
