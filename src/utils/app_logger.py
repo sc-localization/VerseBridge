@@ -42,11 +42,9 @@ class AppLogger:
         self.console_level = console_level
         self.backup_count = backup_count
 
-        # Создание логгера
         self._logger = logging.getLogger(self.logger_name)
-        self._logger.setLevel(logging.DEBUG)  # Базовый уровень для логгера
+        self._logger.setLevel(logging.DEBUG)
 
-        # Проверка, чтобы избежать дублирования обработчиков
         if not self._logger.handlers:
             self._setup_handlers()
 

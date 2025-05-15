@@ -138,7 +138,7 @@ uv run -m scripts.run_translation
 
 ### CLI Usage
 
-**Note:** используйте `--help` аттрибут для получения справки о доступных аргументах
+**Note:** use the `--help` attribute to get help about available arguments
 
 **1. Training a Model (run_training.py)**
 

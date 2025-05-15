@@ -153,7 +153,6 @@ LastCheckpointPathType: TypeAlias = Optional[Path]
 InitializedModelType = PeftModel | PeftMixedModel | PreTrainedModel
 TranslatedFileNameType = Optional[str]
 
-# Новые типы:
 BufferType: TypeAlias = List[str]
 
 TranslatorCallableType: TypeAlias = Callable[[str], str]
