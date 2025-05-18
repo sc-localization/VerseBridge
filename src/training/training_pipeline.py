@@ -48,11 +48,11 @@ class TrainingPipeline:
         self, tokenizer: PreTrainedTokenizerBase
     ) -> Seq2SeqTrainingArguments:
         base_args = self.config.training_config.to_dict()
-        
+
         generation_config = GenerationConfig(
             max_length=self.config.dataset_config.max_training_length,
             decoder_start_token_id=tokenizer.eos_token_id,
-            eos_token_id=tokenizer.eos_token_id,
+            pad_token_id=tokenizer.eos_token_id,
             forced_bos_token_id=tokenizer.convert_tokens_to_ids(  # type:ignore
                 self.config.lang_config.tgt_nllb_lang_code
             ),
