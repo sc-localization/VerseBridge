@@ -1,4 +1,3 @@
-from typing import Optional
 from pathlib import Path
 
 from src.utils import AppLogger, FileUtils
@@ -8,6 +7,7 @@ from src.type_defs import (
     INIDataType,
     LoggerType,
     JSONDataListType,
+    INIFIleValueType,
 )
 
 
@@ -51,8 +51,18 @@ class IniConverter:
         results: JSONDataListType = []
 
         for key in source_data:
-            source_value: Optional[str] = source_data[key]
-            target_value: Optional[str] = target_data[key]
+            source_value: INIFIleValueType | None = source_data.get(key)
+            target_value: INIFIleValueType | None = target_data.get(key)
+
+            # key may be missing
+            if source_value is None:
+                self.logger.warning(
+                    f"Key '{key}' not found in source file: {source_ini}"
+                )
+            if target_value is None:
+                self.logger.warning(
+                    f"Key '{key}' not found in target file: {target_ini}"
+                )
 
             if source_value and target_value:
                 results.append({"source": source_value, "target": target_value})
