@@ -28,6 +28,8 @@ from .dataset_manager import DatasetManager
 from .metrics_calculator import MetricsCalculator
 from .custom_callbacks import CustomEarlyStoppingCallback, LoggingCallback
 
+torch.cuda.empty_cache()
+torch.cuda.reset_peak_memory_stats()
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 
@@ -133,6 +135,8 @@ class TrainingPipeline:
         self.logger.info("🚀 Starting training pipeline")
 
         try:
+            self.memory_manager.clear()
+
             # 1. Initialize tokenizer
             tokenizer = self.tokenizer_initializer.initialize()
 
@@ -154,6 +158,8 @@ class TrainingPipeline:
             training_args = self._configure_training_args(tokenizer)
 
             data_collator = DataCollatorForSeq2Seq(tokenizer, model)
+
+            self.memory_manager.clear()
 
             # 5. Initialize trainer
             trainer = self._initialize_trainer(
@@ -182,7 +188,6 @@ class TrainingPipeline:
             )
             self._save_model(trainer, tokenizer)
 
-            # 8. Clear memory
             self.memory_manager.clear()
 
             self.logger.info("✅ Training pipeline completed successfully")
