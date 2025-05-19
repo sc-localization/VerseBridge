@@ -33,6 +33,7 @@ class LoggingCallback(TrainerCallback):
     def __init__(self, logger: logging.Logger):
         super().__init__()
         self.logger = logger
+        self.memory_manager = MemoryManager(self.logger)
 
     def on_log(self, args, state, control, logs=None, **kwargs):  # type: ignore
         logs = logs or {}
@@ -44,3 +45,4 @@ class LoggingCallback(TrainerCallback):
     def on_step_end(self, args, state, control, **kwargs):  # type: ignore
         if state.global_step % 100 == 0:
             self.logger.debug(f"Step {state.global_step} completed. Clearing memory...")
+            self.memory_manager.clear()
