@@ -20,10 +20,10 @@ class TextProcessor:
         Protects special patterns in the text by replacing them with placeholders.
 
         Args:
-        text (str): Input text.
+            text (str): Input text.
 
         Returns:
-        Tuple[str, Dict[str, str]]: A tuple containing the modified text and a dictionary of placeholders.
+            Tuple[str, Dict[str, str]]: A tuple containing the modified text and a dictionary of placeholders.
         """
         placeholders: PlaceholdersType = {}
 
@@ -46,11 +46,11 @@ class TextProcessor:
         Restores protected patterns in the translated text by replacing placeholders with original values.
 
         Args:
-        translated_text (str): The translated text.
-        placeholders (Dict[str, str]): A dictionary of placeholders and their corresponding values.
+            translated_text (str): The translated text.
+            placeholders (Dict[str, str]): A dictionary of placeholders and their corresponding values.
 
         Returns:
-        str: The text with placeholders replaced with original values.
+            str: The text with placeholders replaced with original values.
         """
         result: str = translated_text
 
@@ -69,12 +69,12 @@ class TextProcessor:
         Splits a given text into chunks that will not exceed the maximum number of tokens.
 
         Args:
-        text (str): Input text.
-        tokenizer (PreTrainedTokenizerBase): A tokenizer to use for counting tokens.
-        max_tokens (int): The maximum number of tokens in a chunk.
+            text (str): Input text.
+            tokenizer (PreTrainedTokenizerBase): A tokenizer to use for counting tokens.
+            max_tokens (int): The maximum number of tokens in a chunk.
 
         Returns:
-        List[str]: A list of chunks.
+            List[str]: A list of chunks.
         """
         sentences = text.split(". ")
         chunks: List[str] = []

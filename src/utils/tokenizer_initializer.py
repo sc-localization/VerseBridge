@@ -17,7 +17,7 @@ class TokenizerInitializer:
         Always uses the same tokenizer with the base model.
 
         Returns:
-        PreTrainedTokenizerBase: A tokenizer instance.
+            PreTrainedTokenizerBase: A tokenizer instance.
         """
 
         model_name: str = self.config.model_config.model_name

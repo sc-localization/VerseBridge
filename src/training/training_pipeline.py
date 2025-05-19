@@ -81,14 +81,14 @@ class TrainingPipeline:
         Initializes a Hugging Face trainer object with configured training arguments, data collator, and metrics calculator.
 
         Args:
-        - model (InitializedModelType): The model object to be trained.
-        - tokenizer (PreTrainedTokenizerBase): The tokenizer object used for tokenization.
-        - tokenized_dataset (DatasetDict): The tokenized dataset to be used for training and evaluation.
-        - training_args (Seq2SeqTrainingArguments): The training arguments configuration.
-        - data_collator (DataCollatorForSeq2Seq): The data collator for batching and padding.
+            model (InitializedModelType): The model object to be trained.
+            tokenizer (PreTrainedTokenizerBase): The tokenizer object used for tokenization.
+            tokenized_dataset (DatasetDict): The tokenized dataset to be used for training and evaluation.
+            training_args (Seq2SeqTrainingArguments): The training arguments configuration.
+            data_collator (DataCollatorForSeq2Seq): The data collator for batching and padding.
 
         Returns:
-        - A Seq2SeqTrainer object.
+            A Seq2SeqTrainer object.
         """
         metrics_calculator = MetricsCalculator(self.config, tokenizer, self.logger)
 
@@ -116,8 +116,8 @@ class TrainingPipeline:
         Saves the model and tokenizer to the result directory.
 
         Args:
-        - trainer ): The trainer object.
-        - tokenizer (PreTrainedTokenizerBase): The tokenizer object.
+            trainer (Seq2SeqTrainer): The trainer object.
+            tokenizer (PreTrainedTokenizerBase): The tokenizer object.
         """
         output_dir: Path = self.config.model_config.result_path
 
