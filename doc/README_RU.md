@@ -176,6 +176,12 @@ uv run -m scripts.run_translation --src-lang en --tgt-lang ru --translated_file_
 uv run -m scripts.run_translation --input-file-path data/global_original_test.ini
 ```
 
+- до-перевести существующий переведенный INI-файл:
+
+```sh
+uv run -m scripts.run_translation --input-file-path data/global_original_test.ini --existing-translated-file data/global_original_exist.ini
+```
+
 - использовать дообученную модель для перевода:
 
 ```sh
