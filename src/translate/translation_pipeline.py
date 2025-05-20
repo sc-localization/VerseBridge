@@ -43,20 +43,21 @@ class TranslationPipeline:
         self.logger.info("🚀 Starting translation pipeline")
         self.memory_manager.clear()
 
+        original_ini_file_path = self.config.translation_config.original_ini_file_path
+        translation_src_dir = self.config.translation_config.translation_src_dir
+        translation_dest_dir = self.config.translation_config.translation_dest_dir
+
         try:
-            if not os.path.exists(self.config.translation_config.source_ini_file_path):
+            if not os.path.exists(original_ini_file_path):
                 self.logger.error(
-                    f"Source file {self.config.translation_config.source_ini_file_path} does not exist"
+                    f"Source file {original_ini_file_path} does not exist"
                 )
                 raise FileNotFoundError(
-                    f"Source file {self.config.translation_config.source_ini_file_path} does not exist"
+                    f"Source file {original_ini_file_path} does not exist"
                 )
 
-            # 1. Copying source file
-            self.file_utils.copy_files(
-                self.config.translation_config.source_ini_file_path,
-                self.config.translation_config.translate_src_dir,
-            )
+            # 1. Copying original `.ini` file
+            self.file_utils.copy_files(original_ini_file_path, translation_src_dir)
 
             # 2. Initialize model
             model = self.model_initializer.initialize(
@@ -74,15 +75,11 @@ class TranslationPipeline:
             ).create_translator()
 
             # 5. Creating destination directory
-            os.makedirs(
-                self.config.translation_config.translate_dest_dir, exist_ok=True
-            )
+            os.makedirs(translation_dest_dir, exist_ok=True)
 
             # 6. Getting INI files
             ini_files = [
-                f
-                for f in os.listdir(self.config.translation_config.translate_src_dir)
-                if f.endswith(".ini")
+                f for f in os.listdir(translation_src_dir) if f.endswith(".ini")
             ]
 
             if not ini_files:
@@ -91,16 +88,14 @@ class TranslationPipeline:
 
             # 7. Translating INI files
             for file_name in ini_files:
-                source_path = (
-                    self.config.translation_config.translate_src_dir / file_name
-                )
+                input_translation_file = translation_src_dir / file_name
 
-                destination_path = self.config.translation_config.translate_dest_dir / (
+                output_translation_file = translation_dest_dir / (
                     translated_file_name or file_name
                 )
 
                 self.ini_file_processor.translate_file(
-                    source_path, destination_path, translator
+                    input_translation_file, output_translation_file, translator
                 )
 
             self.logger.info("✅ Translation pipeline completed successfully")

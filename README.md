@@ -62,12 +62,12 @@ uv run -m scripts.run_preprocess
 
 1. **Configure Paths**:
 
-   - Update `src/config/paths.py` with paths to source and target `.ini` files (e.g., `global_original.ini`, `global_pre_translated.ini`).
+   - Update `src/config/paths.py` with paths to original and translated `.ini` files (e.g., `global_original.ini`, `global_pre_translated.ini`).
    - Set `target_lang_code` in `src/config/language.py` (e.g., `rus_Cyrl` for Russian) using [FLORES-200 codes](https://github.com/facebookresearch/flores/blob/main/flores200/README.md#languages-in-flores-200).
 
 2. **Place Files**:
 
-   - Copy source (`global_original`) and translated (`global_pre_translated`) `.ini` files to `data/`.
+   - Copy original (`global_original`) and translated (`global_pre_translated`) `.ini` files to `data/`.
 
 3. **Run Preprocessing**:
    - **Convert `.ini` to JSON**:
@@ -81,8 +81,8 @@ uv run -m scripts.run_preprocess
 
 ```json
 {
-  "source": "This is a test sentence",
-  "target": "Это тестовое предложение"
+  "original": "This is a test sentence",
+  "translated": "Это тестовое предложение"
 }
 ```
 
