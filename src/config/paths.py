@@ -14,7 +14,7 @@ class PathConfig:
     base_dir: Path = field(init=False)
     data_dir: Path = field(init=False)
     models_dir: Path = field(init=False)
-    translate_dir: Path = field(init=False)
+    translation_dir: Path = field(init=False)
     logging_dir: Path = field(init=False)
     ini_files: IniFilePathsType = field(init=False)
     json_files: JsonFilePathsType = field(init=False)
@@ -24,18 +24,18 @@ class PathConfig:
         self.base_dir = self.base_dir.relative_to(Path.cwd())
         self.data_dir = self.base_dir / "data"
         self.models_dir = self.base_dir / "models"
-        self.translate_dir = self.data_dir / "translated"
+        self.translation_dir = self.data_dir / "translation_results"
         self.logging_dir = self.base_dir / "logs"
 
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
         self.ini_files = IniFilePathsType(
-            source=(
+            original=(
                 Path(self.input_file_path)
                 if self.input_file_path
                 else self.data_dir / self.original_ini_file
             ),
-            target=self.data_dir / self.translated_ini_file,
+            translated=self.data_dir / self.translated_ini_file,
         )
 
         self.json_files = JsonFilePathsType(
