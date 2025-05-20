@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import torch
 from typing import Optional
 
@@ -39,6 +40,7 @@ class TranslationPipeline:
         self,
         translated_file_name: TranslatedFileNameType = None,
         model_cli_path: ModelCLIType = None,
+        existing_translated_file: Optional[str] = None,
     ) -> None:
         self.logger.info("🚀 Starting translation pipeline")
         self.memory_manager.clear()
@@ -95,7 +97,14 @@ class TranslationPipeline:
                 )
 
                 self.ini_file_processor.translate_file(
-                    input_translation_file, output_translation_file, translator
+                    input_translation_file,
+                    output_translation_file,
+                    translator,
+                    existing_translated_file=(
+                        Path(existing_translated_file)
+                        if existing_translated_file
+                        else None
+                    ),
                 )
 
             self.logger.info("✅ Translation pipeline completed successfully")
