@@ -28,45 +28,45 @@ class IniConverter:
         self.exclude_keys: ExcludeKeysType = exclude_keys
         self.file_utils: FileUtils = FileUtils(self.logger)
 
-    def create_json_data(self, source_ini: Path, target_ini: Path) -> JSONDataListType:
+    def create_json_data(self, original_ini: Path, translated_ini: Path) -> JSONDataListType:
         """
-        Creates a list of dictionaries with source-target pairs from two INI files.
+        Creates a list of dictionaries with original-translated pairs from two INI files.
 
         Args:
-            source_ini: Path - Path to the source INI file.
-            target_ini: Path - Path to the target INI file.
+            original_ini: Path - Path to the original INI file.
+            translated_ini: Path - Path to the translated INI file.
 
         Returns:
-            JSONDataListType: A list of dictionaries with {"source": str, "target": str} pairs.
+            JSONDataListType: A list of dictionaries with {"original": str, "translated": str} pairs.
         """
-        self.logger.debug(f"Creating JSON data from {source_ini} and {target_ini}")
+        self.logger.debug(f"Creating JSON data from {original_ini} and {translated_ini}")
 
-        source_data: INIDataType = self.file_utils.parse_ini_file(
-            source_ini, self.exclude_keys
+        original_data: INIDataType = self.file_utils.parse_ini_file(
+            original_ini, self.exclude_keys
         )
-        target_data: INIDataType = self.file_utils.parse_ini_file(
-            target_ini, self.exclude_keys
+        translated_data: INIDataType = self.file_utils.parse_ini_file(
+            translated_ini, self.exclude_keys
         )
 
         results: JSONDataListType = []
 
-        for key in source_data:
-            source_value: INIFIleValueType | None = source_data.get(key)
-            target_value: INIFIleValueType | None = target_data.get(key)
+        for key in original_data:
+            original_value: INIFIleValueType | None = original_data.get(key)
+            translated_value: INIFIleValueType | None = translated_data.get(key)
 
             # key may be missing
-            if source_value is None:
+            if original_value is None:
                 self.logger.warning(
-                    f"Key '{key}' not found in source file: {source_ini}"
+                    f"Key '{key}' not found in original file: {original_ini}"
                 )
-            if target_value is None:
+            if translated_value is None:
                 self.logger.warning(
-                    f"Key '{key}' not found in target file: {target_ini}"
+                    f"Key '{key}' not found in translated file: {translated_ini}"
                 )
 
-            if source_value and target_value:
-                results.append({"source": source_value, "target": target_value})
+            if original_value and translated_value:
+                results.append({"original": original_value, "translated": translated_value})
 
-        self.logger.debug(f"Created {len(results)} source-target pairs")
+        self.logger.debug(f"Created {len(results)} original-translated pairs")
 
         return results

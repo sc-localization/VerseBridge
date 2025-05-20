@@ -39,8 +39,8 @@ class PreprocessPipeline:
         self.logger.info("🚀 Starting preprocessing pipeline")
 
         try:
-            source_ini = self.config.translation_config.source_ini_file_path
-            target_ini = self.config.path_config.ini_files["target"]
+            original_ini = self.config.translation_config.original_ini_file_path
+            translated_ini = self.config.path_config.ini_files["translated"]
 
             self.config.path_config.check_ini_files_exist()
 
@@ -54,7 +54,7 @@ class PreprocessPipeline:
             # Step 1: Convert INI to JSON
             self.logger.info("🔃 Step 1: Converting INI files to JSON")
 
-            json_data = self.ini_converter.create_json_data(source_ini, target_ini)
+            json_data = self.ini_converter.create_json_data(original_ini, translated_ini)
             self.file_utils.save_json(json_data, data_json_path)
 
             # Step 2: Clean JSON-data
@@ -64,7 +64,7 @@ class PreprocessPipeline:
 
             if not is_json_data_list_type(loaded_json_data):
                 raise ValueError(
-                    "JSON data must contain a list of dictionaries with 'source' and 'target' keys"
+                    "JSON data must contain a list of dictionaries with 'original' and 'translated' keys"
                 )
 
             cleaned_data = self.json_cleaner.clean_json_data(loaded_json_data)
@@ -77,7 +77,7 @@ class PreprocessPipeline:
 
             if not is_json_data_list_type(loaded_cleaned_data):
                 raise ValueError(
-                    "JSON data must contain a list of dictionaries with 'source' and 'target' keys"
+                    "JSON data must contain a list of dictionaries with 'original' and 'translated' keys"
                 )
 
             train_data, test_data = self.data_splitter.split_data(loaded_cleaned_data)
