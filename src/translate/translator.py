@@ -67,8 +67,7 @@ class Translator:
         def translate(text: str) -> str:
             self.tokenizer.src_lang = self.config.lang_config.src_nllb_lang_code
             self.tokenizer.tgt_lang = self.config.lang_config.tgt_nllb_lang_code
-#TODO: check value
-            print(f"src lang: {self.tokenizer.src_lang}")
+
             tokenizer_args = self.config.dataset_config.to_dict()
             max_model_length = tokenizer_args["max_length"]
 

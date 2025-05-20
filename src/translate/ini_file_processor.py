@@ -110,8 +110,6 @@ class IniFileProcessor:
                 f"Read {len(output_items)} key-value pairs from {output_file}"
             )
 
-
-            print(f"input items {input_items} output items {output_items}")
             return input_items, output_items
         except Exception as e:
             self.logger.error(f"Failed to read files: {str(e)}")
