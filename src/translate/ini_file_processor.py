@@ -1,7 +1,6 @@
-import os
 from pathlib import Path
 from tqdm import tqdm
-from typing import Set, Tuple
+from typing import Optional, Set, Tuple
 
 
 from src.config import ConfigManager
@@ -93,7 +92,10 @@ class IniFileProcessor:
         return f"{key}={translated_value}\n"
 
     def _read_files(
-        self, input_file: Path, output_file: Path
+        self,
+        input_file: Path,
+        output_file: Path,
+        existing_translated_file: Optional[Path] = None,
     ) -> Tuple[INIDataType, INIDataType]:
         """
         Reads key-value pairs from input and output INI files.
@@ -101,6 +103,7 @@ class IniFileProcessor:
         Args:
             input_file (Path): Path to the input INI file.
             output_file (Path): Path to the output INI file.
+            existing_translated_file: Path to an existing translated INI file, if any.
 
         Returns:
             Tuple[INIDataType, INIDataType]: A tuple containing the source and destination key-value pairs.
@@ -114,12 +117,18 @@ class IniFileProcessor:
 
             output_items: INIDataType = {}
 
-            if os.path.exists(output_file):
+            if existing_translated_file and existing_translated_file.exists():
+                output_items = self.file_utils.parse_ini_file(existing_translated_file)
+
+                self.logger.debug(
+                    f"Read {len(output_items)} key-value pairs from existing {existing_translated_file}"
+                )
+            elif output_file.exists():
                 output_items = self.file_utils.parse_ini_file(output_file)
 
-            self.logger.debug(
-                f"Read {len(output_items)} key-value pairs from {output_file}"
-            )
+                self.logger.debug(
+                    f"Read {len(output_items)} key-value pairs from {output_file}"
+                )
 
             return input_items, output_items
         except Exception as e:
@@ -177,11 +186,22 @@ class IniFileProcessor:
         input_translation_file: Path,
         output_translation_file: Path,
         translator: TranslatorCallableType,
+        existing_translated_file: Optional[Path] = None,
     ) -> None:
+        """
+        Translates an INI file, preserving existing translations if provided.
+
+        Args:
+            input_translation_file: Path to the input INI file.
+            output_translation_file: Path to the output INI file.
+            translator: A callable for translating the text.
+            existing_translated_file: Path to an existing translated INI file, if any.
+        """
+
         self.logger.info(f"Translating file: {input_translation_file}")
 
         input_items, output_items = self._read_files(
-            input_translation_file, output_translation_file
+            input_translation_file, output_translation_file, existing_translated_file
         )
         missing_keys, obsolete_keys, untranslated_keys = self._compare_keys(
             input_items, output_items
