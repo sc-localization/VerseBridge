@@ -58,6 +58,9 @@ class MetricsCalculator:
         decoded_preds_clean = [pred.strip(".").lower() for pred in decoded_preds]
         decoded_labels_clean = [label.strip(".").lower() for label in decoded_labels]
 
+        for pred, ref in zip(decoded_preds_clean[:10], decoded_labels_clean[:10]):
+            self.logger.debug(f"\nPRED: {pred}\nREF : {ref}\n{'-'*40}")
+
         decoded_preds_words = [pred.split() for pred in decoded_preds_clean]
         decoded_labels_words = [label.split() for label in decoded_labels_clean]
 
