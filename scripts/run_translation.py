@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 
 from src.config import ConfigManager
 from src.utils import AppLogger, CustomHelpFormatter, SystemUtils, HelpUtils
@@ -71,14 +72,33 @@ def parse_args() -> argparse.Namespace:
         metavar="",
         help=help_strings["input_path_help"],
     )
+    path_group.add_argument(
+        "--existing-translated-file",
+        type=str,
+        default=None,
+        help=help_strings["existing_translated_file_help"],
+    )
 
     args = parser.parse_args()
 
+    # Validate language codes
     valid_langs = ConfigManager().lang_config.available_languages
 
     if args.src_lang not in valid_langs or args.tgt_lang not in valid_langs:
         parser.error(
             f"Invalid language code. Supported: {', '.join(lang.value for lang in valid_langs)}"
+        )
+
+    # Validate file paths
+    if args.input_file_path and not Path(args.input_file_path).is_file():
+        parser.error(f"Input file {args.input_file_path} does not exist")
+
+    if (
+        args.existing_translated_file
+        and not Path(args.existing_translated_file).is_file()
+    ):
+        parser.error(
+            f"Existing translated file {args.existing_translated_file} does not exist"
         )
 
     return args
@@ -108,6 +128,7 @@ def main():
     pipeline.run_translation(
         translated_file_name=args.translated_file_name,
         model_cli_path=args.model_path,
+        existing_translated_file=args.existing_translated_file,
     )
 
 
