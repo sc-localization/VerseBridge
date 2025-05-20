@@ -174,25 +174,25 @@ class JsonCleaner:
 
     def contains_foreign_words(
         self,
-        cleaned_source_text: CleanedINIFIleValueType,
-        cleaned_target_text: CleanedINIFIleValueType,
+        cleaned_original_text: CleanedINIFIleValueType,
+        cleaned_translated_text: CleanedINIFIleValueType,
     ) -> bool:
         """
-        Checks if there are any untranslated words in the target text that are present in the source text.
+        Checks if there are any untranslated words in the target text that are present in the original text.
 
         Args:
-            cleaned_source_text (CleanedINIFIleValueType): Source text.
-            cleaned_target_text (CleanedINIFIleValueType): Target text.
+            cleaned_original_text (CleanedINIFIleValueType): Original text.
+            cleaned_translated_text (CleanedINIFIleValueType): Translated text.
 
         Returns:
             True if there are untranslated words, False otherwise.
         """
         for pattern in self.protected_patterns:
-            cleaned_target_text = re.sub(pattern, "", cleaned_target_text)
-            cleaned_source_text = re.sub(pattern, "", cleaned_source_text)
+            cleaned_translated_text = re.sub(pattern, "", cleaned_translated_text)
+            cleaned_original_text = re.sub(pattern, "", cleaned_original_text)
 
-        target_words = re.findall(r"\b\w+\b", cleaned_target_text)
-        cleaned_source_text = cleaned_source_text.strip().lower()
+        target_words = re.findall(r"\b\w+\b", cleaned_translated_text)
+        cleaned_original_text = cleaned_original_text.strip().lower()
 
         for word_orig in target_words:
             target_word_cleaned = word_orig.strip().lower()
@@ -200,7 +200,7 @@ class JsonCleaner:
             if target_word_cleaned.isdigit():
                 continue
 
-            if target_word_cleaned in cleaned_source_text:
+            if target_word_cleaned in cleaned_original_text:
                 return True
 
         return False
@@ -219,60 +219,60 @@ class JsonCleaner:
         cleaned_data: JSONDataListType = []
 
         for item in tqdm(data, desc="Cleaning data"):
-            source_text: CleanedINIFIleValueType = self.clean_text(
-                item.get("source", ""), remove_patterns=False
+            original_text: CleanedINIFIleValueType = self.clean_text(
+                item.get("original", ""), remove_patterns=False
             ).lower()
-            target_text: CleanedINIFIleValueType = self.clean_text(
-                item.get("target", ""), remove_patterns=False
+            translated_text: CleanedINIFIleValueType = self.clean_text(
+                item.get("translated", ""), remove_patterns=False
             ).lower()
 
-            if not source_text or not target_text:
+            if not original_text or not translated_text:
                 self.removed_count["empty"] += 1
                 continue
 
-            pair = f"{source_text}|||{target_text}"
+            pair = f"{original_text}|||{translated_text}"
             if pair in seen_pairs:
                 self.removed_count["duplicate"] += 1
                 continue
 
-            if source_text.lower() == target_text.lower():
+            if original_text.lower() == translated_text.lower():
                 self.removed_count["same_lang"] += 1
                 continue
 
-            source_tokens = self.tokenizer(
-                source_text, add_special_tokens=True, padding=True, truncation=True
+            original_tokens = self.tokenizer(
+                original_text, add_special_tokens=True, padding=True, truncation=True
             )["input_ids"]
-            target_tokens = self.tokenizer(
-                target_text, add_special_tokens=True, padding=True, truncation=True
+            translated_tokens = self.tokenizer(
+                translated_text, add_special_tokens=True, padding=True, truncation=True
             )["input_ids"]
-            source_tokens_len = len(source_tokens)  # type:ignore
-            target_tokens_len = len(target_tokens)  # type:ignore
+            original_tokens_len = len(original_tokens)  # type:ignore
+            translated_tokens_len = len(translated_tokens)  # type:ignore
 
             if (
-                source_tokens_len > self.max_model_length
-                or target_tokens_len > self.max_model_length
+                original_tokens_len > self.max_model_length
+                or translated_tokens_len > self.max_model_length
             ):
                 self.removed_count["too_long"] += 1
                 continue
 
-            if len(source_text) < 2 or len(target_text) < 2:
+            if len(original_text) < 2 or len(translated_text) < 2:
                 self.removed_count["too_short"] += 1
                 continue
 
-            length_ratio = max(source_tokens_len, target_tokens_len) / max(
-                1, min(source_tokens_len, target_tokens_len)
+            length_ratio = max(original_tokens_len, translated_tokens_len) / max(
+                1, min(original_tokens_len, translated_tokens_len)
             )
 
             if length_ratio > 2.5:
                 self.removed_count["length_mismatch"] += 1
                 continue
 
-            if self.contains_foreign_words(source_text, target_text):
+            if self.contains_foreign_words(original_text, translated_text):
                 self.removed_count["foreign_words"] += 1
                 continue
 
             seen_pairs.add(pair)
-            cleaned_data.append({"source": source_text, "target": target_text})
+            cleaned_data.append({"original": original_text, "translated": translated_text})
 
         self._log_cleaning_stats(len(cleaned_data))
 

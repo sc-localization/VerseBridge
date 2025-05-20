@@ -55,12 +55,12 @@ class DatasetManager:
             """
             tokenizer.src_lang = self.config.lang_config.src_nllb_lang_code
             inputs = tokenizer(
-                examples["source"],
+                examples["original"],
                 **tokenizer_base_args,
             )
             tokenizer.src_lang = self.config.lang_config.tgt_nllb_lang_code
             targets = tokenizer(
-                examples["target"],
+                examples["translated"],
                 **tokenizer_base_args,
             )
             inputs["labels"] = targets["input_ids"]
@@ -71,7 +71,7 @@ class DatasetManager:
         try:
             tokenized_dataset: DatasetDict = dataset.map(
                 tokenize_function, batched=True, 
-                remove_columns=["source", "target"]
+                remove_columns=["original", "translated"]
             )
             self.logger.debug("Dataset tokenized successfully")
 

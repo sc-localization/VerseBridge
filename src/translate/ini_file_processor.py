@@ -71,7 +71,9 @@ class IniFileProcessor:
             str: The processed line in the format 'key=value'.
         """
         if self._should_translate(key, value, translated_lines, exclude_keys):
-            translated_value: str = self.text_processor.translate_text(value, translator)
+            translated_value: str = self.text_processor.translate_text(
+                value, translator
+            )
         else:
             translated_value: str = translated_lines.get(key, value)
 
@@ -80,61 +82,63 @@ class IniFileProcessor:
         return f"{key}={translated_value}\n"
 
     def _read_files(
-        self, source_path: Path, destination_path: Path
+        self, input_file: Path, output_file: Path
     ) -> Tuple[INIDataType, INIDataType]:
         """
-        Reads key-value pairs from source and destination INI files.
+        Reads key-value pairs from input and output INI files.
 
         Args:
-            source_path (Path): Path to the source INI file.
-            destination_path (Path): Path to the destination INI file.
+            input_file (Path): Path to the input INI file.
+            output_file (Path): Path to the output INI file.
 
         Returns:
             Tuple[INIDataType, INIDataType]: A tuple containing the source and destination key-value pairs.
         """
         try:
-            source_items: INIDataType = self.file_utils.parse_ini_file(source_path)
+            input_items: INIDataType = self.file_utils.parse_ini_file(input_file)
 
             self.logger.debug(
-                f"Read {len(source_items)} key-value pairs from {source_path}"
+                f"Read {len(input_items)} key-value pairs from {input_file}"
             )
 
-            dest_items: INIDataType = {}
+            output_items: INIDataType = {}
 
-            if os.path.exists(destination_path):
-                dest_items = self.file_utils.parse_ini_file(destination_path)
+            if os.path.exists(output_file):
+                output_items = self.file_utils.parse_ini_file(output_file)
 
             self.logger.debug(
-                f"Read {len(dest_items)} key-value pairs from {destination_path}"
+                f"Read {len(output_items)} key-value pairs from {output_file}"
             )
 
-            return source_items, dest_items
+
+            print(f"input items {input_items} output items {output_items}")
+            return input_items, output_items
         except Exception as e:
             self.logger.error(f"Failed to read files: {str(e)}")
             raise
 
     def _compare_keys(
         self,
-        source_items: INIDataType,
-        dest_items: INIDataType,
+        input_items: INIDataType,
+        output_items: INIDataType,
     ) -> Tuple[Set[str], Set[str]]:
         """
         Compares the keys of two dictionaries and returns two sets:
-        1. missing_keys: The set of keys present in source_items but not in dest_items.
-        2. obsolete_keys: The set of keys present in dest_items but not in source_items.
+        1. missing_keys: The set of keys present in input_items but not in output_items.
+        2. obsolete_keys: The set of keys present in output_items but not in input_items.
 
         Args:
-            source_items (INIDataType): The dictionary of source items.
-            dest_items (INIDataType): The dictionary of destination items.
+            input_items (INIDataType): The dictionary of input items.
+            output_items (INIDataType): The dictionary of output items.
 
         Returns:
             Tuple[Set[str], Set[str]]: A tuple containing the missing and obsolete keys.
         """
-        source_keys: Set[str] = set(source_items.keys())
-        dest_keys: Set[str] = set(dest_items.keys())
+        input_keys: Set[str] = set(input_items.keys())
+        output_keys: Set[str] = set(output_items.keys())
 
-        missing_keys: Set[str] = source_keys - dest_keys
-        obsolete_keys: Set[str] = dest_keys - source_keys
+        missing_keys: Set[str] = input_keys - output_keys
+        obsolete_keys: Set[str] = output_keys - input_keys
 
         self.logger.info(f"Found {len(missing_keys)} new keys for translation")
         self.logger.info(f"Found {len(obsolete_keys)} obsolete keys to remove")
@@ -143,24 +147,24 @@ class IniFileProcessor:
 
     def translate_file(
         self,
-        source_file_path: Path,
-        destination_file_path: Path,
+        input_translation_file: Path,
+        output_translation_file: Path,
         translator: TranslatorCallableType,
     ) -> None:
-        self.logger.info(f"Translating file: {source_file_path}")
+        self.logger.info(f"Translating file: {input_translation_file}")
 
-        source_items, dest_items = self._read_files(
-            source_file_path, destination_file_path
+        input_items, output_items = self._read_files(
+            input_translation_file, output_translation_file
         )
-        _, obsolete_keys = self._compare_keys(source_items, dest_items)
+        _, obsolete_keys = self._compare_keys(input_items, output_items)
 
         with BufferedFileWriter(
-            destination_file_path,
+            output_translation_file,
             self.config.translation_config.buffer_size,
             self.logger,
         ) as writer:
             for key, value in tqdm(
-                source_items.items(), desc="Translating INI", total=len(source_items)
+                input_items.items(), desc="Translating INI", total=len(input_items)
             ):
                 if key in obsolete_keys:
                     continue
@@ -169,7 +173,7 @@ class IniFileProcessor:
                     key,
                     value,
                     translator,
-                    dest_items,
+                    output_items,
                     self.config.translation_config.exclude_keys,
                 )
 

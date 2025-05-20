@@ -11,9 +11,9 @@ class TranslationConfig:
     path_config: PathConfig
     lang_config: LanguageConfig
 
-    translate_src_dir: Path = field(init=False)
-    translate_dest_dir: Path = field(init=False)
-    source_ini_file_path: Path = field(init=False)
+    translation_src_dir: Path = field(init=False)
+    translation_dest_dir: Path = field(init=False)
+    original_ini_file_path: Path = field(init=False)
     buffer_size: int = 50
 
     exclude_keys: ExcludeKeysType = field(
@@ -45,12 +45,12 @@ class TranslationConfig:
     )
 
     def __post_init__(self):
-        self.translate_src_dir = (
-            self.path_config.translate_dir / self.lang_config.src_lang.value
+        self.translation_src_dir = (
+            self.path_config.translation_dir / self.lang_config.src_lang.value
         )
 
-        self.translate_dest_dir = (
-            self.path_config.translate_dir / self.lang_config.tgt_lang.value
+        self.translation_dest_dir = (
+            self.path_config.translation_dir / self.lang_config.tgt_lang.value
         )
 
-        self.source_ini_file_path = self.path_config.ini_files["source"]
+        self.original_ini_file_path = self.path_config.ini_files["original"]

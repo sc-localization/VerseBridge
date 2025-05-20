@@ -37,8 +37,8 @@ LangMapType = Dict[LangCode, MappedCode]
 
 
 class IniFilePathsType(TypedDict):
-    source: Path
-    target: Path
+    original: Path
+    translated: Path
 
 
 class JsonFilePathsType(TypedDict):
@@ -131,8 +131,8 @@ class HelpStringsLangType(TypedDict):
 
 
 class JSONDataType(TypedDict):
-    source: INIFIleValueType
-    target: INIFIleValueType
+    original: INIFIleValueType
+    translated: INIFIleValueType
 
 
 JSONHelpStringsDictType = HelpStringsLangType
@@ -219,8 +219,8 @@ def is_json_data_list_type(data: Any) -> TypeGuard[JSONDataListType]:
     for item in data:
         if not isinstance(item, dict):
             return False
-        if "source" not in item or "target" not in item:
+        if "original" not in item or "translated" not in item:
             return False
-        if not isinstance(item["source"], str) or not isinstance(item["target"], str):
+        if not isinstance(item["original"], str) or not isinstance(item["translated"], str):
             return False
     return True
