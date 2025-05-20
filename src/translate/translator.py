@@ -46,7 +46,6 @@ class Translator:
                     forced_bos_token_id=self.tokenizer.convert_tokens_to_ids(  # type: ignore
                         target_lang_code
                     ),
-                    pad_token_id=self.tokenizer.eos_token_id,
                     **generation_config,
                 )
 
