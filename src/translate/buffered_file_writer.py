@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 from src.type_defs import BufferType
+from src.utils import MemoryManager
 
 
 class BufferedFileWriter:
@@ -19,6 +20,7 @@ class BufferedFileWriter:
         self.buffer_size = buffer_size
         self.buffer: BufferType = []
         self.file = None
+        self.memory_manager = MemoryManager(self.logger)
 
     def __enter__(self):
         self.file = self.file_path.open("w", encoding="utf-8-sig")
@@ -51,6 +53,7 @@ class BufferedFileWriter:
             try:
                 self.file.writelines(self.buffer)
                 self.buffer.clear()
+                self.memory_manager.clear()
             except Exception as e:
                 self.logger.error(f"Failed to write to {self.file_path}: {str(e)}")
                 raise

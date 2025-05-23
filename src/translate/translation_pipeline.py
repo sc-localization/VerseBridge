@@ -17,6 +17,10 @@ from .text_processor import TextProcessor
 from .translator import Translator
 from .ini_file_processor import IniFileProcessor
 
+torch.cuda.empty_cache()
+torch.cuda.reset_peak_memory_stats()
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 
 class TranslationPipeline:
     def __init__(
