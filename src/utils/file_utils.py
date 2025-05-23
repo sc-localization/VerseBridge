@@ -10,6 +10,8 @@ from src.type_defs import (
     JSONDataListType,
     LoadedJSONType,
     KeyValuePairType,
+    IniLineType,
+    is_ini_file_line,
 )
 from .app_logger import AppLogger
 
@@ -18,16 +20,13 @@ class FileUtils:
     def __init__(self, logger: ArgLoggerType = None):
         self.logger = logger or AppLogger("file_utils").get_logger
 
-    def _parse_line(self, line: str) -> KeyValuePairType | None:
-        if "=" not in line:
-            raise ValueError("Line should contain '=' symbol")
-
+    def _parse_line(self, line: IniLineType) -> KeyValuePairType | None:
         key_value = line.split("=", 1)
 
         if len(key_value) == 2:
             key, value = key_value
 
-            return (key.strip(), value.strip())
+            return key.strip(), value.strip()
 
     def parse_ini_file(
         self, file_path: Path, exclude_keys: ExcludeKeysType = tuple()
@@ -55,7 +54,11 @@ class FileUtils:
                     if not line or line.startswith(";"):
                         continue
 
-                    key_value = self._parse_line(line)
+                    if is_ini_file_line(line):
+                        key_value = self._parse_line(line)
+                    else:
+                        self.logger.warning(f"Invalid line format: {line}")
+                        continue
 
                     if key_value is None:
                         continue
