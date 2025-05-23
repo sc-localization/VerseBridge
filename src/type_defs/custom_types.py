@@ -119,8 +119,12 @@ PlaceholdersType: TypeAlias = Dict[str, str]
 INIFIleKeyType: TypeAlias = str
 INIFIleValueType: TypeAlias = str
 KeyValuePairType: TypeAlias = Tuple[INIFIleKeyType, INIFIleValueType]
+IniLineType: TypeAlias = Literal[f"{INIFIleKeyType}={INIFIleValueType}"]
+TranslatedIniLineType: TypeAlias = Literal[f"{INIFIleKeyType}={INIFIleValueType}"]
 
 INIDataType: TypeAlias = Dict[INIFIleKeyType, INIFIleValueType]
+
+IniFileListLinesType: TypeAlias = List[KeyValuePairType]
 
 HelpStringsDictType: TypeAlias = Dict[str, str]
 
@@ -221,6 +225,24 @@ def is_json_data_list_type(data: Any) -> TypeGuard[JSONDataListType]:
             return False
         if "original" not in item or "translated" not in item:
             return False
-        if not isinstance(item["original"], str) or not isinstance(item["translated"], str):
+
+        if not isinstance(item["original"], str) or not isinstance(
+            item["translated"], str
+        ):
             return False
+
+    return True
+
+
+def is_ini_file_line(line: Any) -> TypeGuard[IniLineType]:
+    if not isinstance(line, str):
+        return False
+    if "=" not in line:
+        return False
+
+    key, value = line.split("=", 1)
+
+    if not key or not value:
+        return False
+
     return True
