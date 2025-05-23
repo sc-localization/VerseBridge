@@ -200,6 +200,17 @@ class IniFileProcessor:
 
         self.logger.info(f"Translating file: {input_translation_file}")
 
+        # Extract translation destination directory and file name
+        translation_dest_dir = output_translation_file.parent
+        output_file_name = output_translation_file.name
+
+        # Check if output directory exists
+        if not translation_dest_dir.exists():
+            self.logger.error(f"Output directory {translation_dest_dir} does not exist")
+            raise FileNotFoundError(
+                f"Output directory {translation_dest_dir} does not exist"
+            )
+
         input_items, output_items = self._read_files(
             input_translation_file, output_translation_file, existing_translated_file
         )
@@ -208,7 +219,27 @@ class IniFileProcessor:
         )
 
         if not missing_keys and not obsolete_keys and not untranslated_keys:
-            self.logger.info("No changes detected, skipping translation")
+            if existing_translated_file and existing_translated_file.exists():
+                self.logger.info(
+                    f"No changes detected, copying existing translations {existing_translated_file} to {translation_dest_dir}"
+                )
+
+                try:
+                    self.file_utils.copy_files(
+                        existing_translated_file,
+                        translation_dest_dir,
+                        dest_name=output_file_name,
+                    )
+                except Exception as e:
+                    self.logger.error(
+                        f"Failed to copy {existing_translated_file}: {str(e)}"
+                    )
+                    raise
+            else:
+                self.logger.warning(
+                    f"No changes detected in {input_translation_file}, skipping translation"
+                )
+
             return
 
         with BufferedFileWriter(
