@@ -68,9 +68,6 @@ class FileUtils:
                     if key in exclude_keys:
                         continue
 
-                    if not value:
-                        self.logger.debug(f"Parsed empty value for key {key}")
-
                     data[key] = value
 
             self.logger.debug(f"Parsed {len(data)} key-value pairs from {file_path}")
