@@ -244,12 +244,13 @@ def is_json_data_list_type(data: Any) -> TypeGuard[JSONDataListType]:
 def is_ini_file_line(line: Any) -> TypeGuard[IniLineType]:
     if not isinstance(line, str):
         return False
+
     if "=" not in line:
         return False
 
-    key, value = line.split("=", 1)
+    key, _ = line.split("=", 1)
 
-    if not key or not value:
+    if not key:
         return False
 
     return True
