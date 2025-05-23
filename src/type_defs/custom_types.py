@@ -206,23 +206,30 @@ LoraTargetModulesType: TypeAlias = Optional[Union[list[str], str]]
 def is_json_help_strings_dict_type(data: Any) -> TypeGuard[JSONHelpStringsDictType]:
     if not isinstance(data, dict):
         return False
+
     if "ru" not in data or "en" not in data:
         return False
+
     if not isinstance(data["ru"], dict) or not isinstance(data["en"], dict):
         return False
+
     if not all(isinstance(v, str) for v in data["ru"].values()):
         return False
+
     if not all(isinstance(v, str) for v in data["en"].values()):
         return False
+
     return True
 
 
 def is_json_data_list_type(data: Any) -> TypeGuard[JSONDataListType]:
     if not isinstance(data, list):
         return False
+
     for item in data:
         if not isinstance(item, dict):
             return False
+
         if "original" not in item or "translated" not in item:
             return False
 
