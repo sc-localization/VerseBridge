@@ -81,7 +81,10 @@ class FileUtils:
             raise
 
     def copy_files(
-        self, src_path: Union[str, Path], dest_path: Union[str, Path]
+        self,
+        src_path: Union[str, Path],
+        dest_path: Union[str, Path],
+        dest_name: str | None = None,
     ) -> None:
         """
         Copies files or directories from src_path to dest_path.
@@ -109,7 +112,7 @@ class FileUtils:
             dest_path.mkdir(parents=True, exist_ok=True)
 
             if src_path.is_file():
-                dest_file = dest_path / src_path.name
+                dest_file = dest_path / (dest_name or src_path.name)
 
                 self._copy_file(src_path, dest_file)
             elif src_path.is_dir():
