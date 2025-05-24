@@ -161,6 +161,8 @@ BufferType: TypeAlias = List[str]
 
 TranslatorCallableType: TypeAlias = Callable[[str], str]
 
+TranslationPriorityType = Literal["output", "existing"]
+
 
 class TrainingConfigType(TypedDict):
     logging_dir: str
