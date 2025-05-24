@@ -14,14 +14,14 @@ from .paths import PathConfig
 class TranslationConfig:
     path_config: PathConfig
     lang_config: LanguageConfig
+    translation_priority: TranslationPriorityType = field(
+        default="output"
+    )  # "output", "existing"
 
     translation_src_dir: Path = field(init=False)
     translation_dest_dir: Path = field(init=False)
     original_ini_file_path: Path = field(init=False)
     buffer_size: int = 50
-    translation_priority: TranslationPriorityType = field(
-        default="output"
-    )  # Возможные значения: "output", "existing"
 
     exclude_keys: ExcludeKeysType = field(
         default_factory=lambda: (

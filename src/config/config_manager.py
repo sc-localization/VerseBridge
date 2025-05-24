@@ -8,7 +8,7 @@ from .paths import PathConfig
 from .training import TrainingConfig
 from .translation import TranslationConfig
 
-from src.type_defs import LangCode
+from src.type_defs import LangCode, TranslationPriorityType
 
 
 class ConfigManager:
@@ -17,6 +17,7 @@ class ConfigManager:
         src_lang: LangCode = LangCode.EN,
         tgt_lang: LangCode = LangCode.RU,
         input_file_path: str | None = None,
+        translation_priority: TranslationPriorityType = "output",
     ):
         self.dataset_config = DatasetConfig()
         self.generation_config = GenerationConfig()
@@ -26,4 +27,6 @@ class ConfigManager:
         self.logging_config = LoggingConfig()
         self.model_config = ModelConfig(self.path_config)
         self.training_config = TrainingConfig(str(self.path_config.logging_dir))
-        self.translation_config = TranslationConfig(self.path_config, self.lang_config)
+        self.translation_config = TranslationConfig(
+            self.path_config, self.lang_config, translation_priority
+        )
