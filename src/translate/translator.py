@@ -4,6 +4,7 @@ from transformers import PreTrainedTokenizerBase, BatchEncoding
 
 from src.config import ConfigManager
 from src.type_defs import InitializedModelType, LoggerType, TranslatorCallableType
+from src.utils import MemoryManager
 from .text_processor import TextProcessor
 
 
@@ -21,6 +22,7 @@ class Translator:
         self.tokenizer = tokenizer
         self.text_processor = text_processor
         self.model = model
+        self.memory_manager = MemoryManager(self.logger)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     def generate_translation(

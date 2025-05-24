@@ -53,6 +53,9 @@ class TranslationPipeline:
         translation_src_dir = self.config.translation_config.translation_src_dir
         translation_dest_dir = self.config.translation_config.translation_dest_dir
 
+        model = None
+        tokenizer = None
+
         try:
             if not os.path.exists(original_ini_file_path):
                 self.logger.error(
@@ -112,6 +115,21 @@ class TranslationPipeline:
                 )
 
             self.logger.info("✅ Translation pipeline completed successfully")
+        except KeyboardInterrupt:
+            self.logger.warning("Translation interrupted by user")
+            raise
         except Exception as e:
             self.logger.error(f"❌ Caught error at translation pipeline: {str(e)}")
             raise
+        finally:
+            self.logger.debug("Releasing model and tokenizer resources")
+
+            if model is not None:
+                model = None
+                del model
+
+            if tokenizer is not None:
+                tokenizer = None
+                del tokenizer
+
+            self.memory_manager.clear()
