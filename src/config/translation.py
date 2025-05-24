@@ -1,7 +1,11 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from src.type_defs import ExcludeKeysType, ProtectedPatternsType
+from src.type_defs import (
+    ExcludeKeysType,
+    ProtectedPatternsType,
+    TranslationPriorityType,
+)
 from .language import LanguageConfig
 from .paths import PathConfig
 
@@ -15,6 +19,9 @@ class TranslationConfig:
     translation_dest_dir: Path = field(init=False)
     original_ini_file_path: Path = field(init=False)
     buffer_size: int = 50
+    translation_priority: TranslationPriorityType = field(
+        default="output"
+    )  # Возможные значения: "output", "existing"
 
     exclude_keys: ExcludeKeysType = field(
         default_factory=lambda: (
