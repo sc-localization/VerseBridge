@@ -170,8 +170,7 @@ class IniFileProcessor:
             untranslated_keys: Set[str] = {
                 key
                 for key in input_keys & existing_keys
-                if key
-                not in output_keys  # exclude keys not present in output_items
+                if key not in output_keys  # exclude keys not present in output_items
                 and input_items[key] == existing_items[key]
                 and key not in exclude_keys
                 and input_items[key]
@@ -188,12 +187,8 @@ class IniFileProcessor:
 
         obsolete_keys: Set[str] = output_keys - input_keys
 
-        self.logger.info(
-            f"Found {len(missing_keys)} new keys for translation"
-        )
-        self.logger.info(
-            f"Found {len(obsolete_keys)} obsolete keys to remove"
-        )
+        self.logger.info(f"Found {len(missing_keys)} new keys for translation")
+        self.logger.info(f"Found {len(obsolete_keys)} obsolete keys to remove")
         self.logger.info(
             f"Found {len(untranslated_keys)} keys with not translated values"
         )
@@ -267,14 +262,31 @@ class IniFileProcessor:
                     raise
                 return
 
+        lines: IniFileListLinesType = [
+            (key, value)
+            for key, value in input_items.items()
+            if key not in obsolete_keys
+        ]
+
+        translated_lines: INIDataType = {}
+
+        if self.config.translation_config.translation_priority == "output":
+            translated_lines = output_items.copy()
+            translated_lines.update(
+                {k: v for k, v in existing_items.items() if k not in translated_lines}
+            )
+        else:  # translation_priority == "existing"
+            translated_lines = existing_items.copy()
+            translated_lines.update(
+                {k: v for k, v in output_items.items() if k not in translated_lines}
+            )
+
         with BufferedFileWriter(
             output_translation_file,
             self.config.translation_config.buffer_size,
             self.logger,
         ) as writer:
-            for key, value in tqdm(
-                input_items.items(), desc="Translating INI", total=len(input_items)
-            ):
+            for key, value in tqdm(lines, desc="Translating INI", total=len(lines)):
                 if key in obsolete_keys:
                     continue
 
