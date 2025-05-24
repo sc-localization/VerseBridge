@@ -182,6 +182,12 @@ uv run -m scripts.run_translation --input-file-path data/global_original_test.in
 uv run -m scripts.run_translation --input-file-path data/global_original_test.ini --existing-translated-file data/global_original_exist.ini
 ```
 
+- до-перевести существующий переведенный INI-файл с приоритетом (если файлы с переводом уже существуют в целевой директории `translation_results`, они будут заменены строками из `existing-translated-file`):
+
+```sh
+uv run -m scripts.run_translation --input-file-path data/global_original_test.ini --existing-translated-file data/global_original_exist.ini --translation-priority existing
+```
+
 - использовать дообученную модель для перевода:
 
 ```sh
