@@ -10,7 +10,8 @@
     "model_path_help": "Путь к модели (пкть к чекпоинтам или результируешей модели после обучения). По умолчанию — базовая модель.",
     "input_path_help": "Путь к исходному INI-файлу.\nЕсли не указан, используется путь из TranslationConfig.",
     "translated_file_name_help": "Имя целевого файла для пакетного перевода.\nЕсли не указано, используется имя исходного файла.",
-    "existing_translated_file_help": "Путь к уже переведенному целевому INI-файлу.\nЕсли не указан, то файл не будет создаваться."
+    "existing_translated_file_help": "Путь к уже переведенному целевому INI-файлу.\nЕсли не указан, то файл не будет создаваться.",
+    "translation_priority_help": "Приоритет для переводов: 'output' (output_translation_file) или 'existing' (existing_translated_file)"
   },
   "en": {
     "description": "Run translation of INI files\n\nThe program translates INI files from one language to another, using translation models with LoRA support.",
@@ -23,6 +24,7 @@
     "model_path_help": "Path to the model (pretrained name, result path, or checkpoint path). Defaults to pretrained base model.",
     "input_path_help": "Path to the source INI file.\nIf not specified, uses path from TranslationConfig.",
     "translated_file_name_help": "Name of the target file for batch translation.\nIf not specified, uses the source file name.",
-    "existing_translated_file_help": "Path to an already translated target INI file.\nIf not specified, the file will not be created."
+    "existing_translated_file_help": "Path to an already translated target INI file.\nIf not specified, the file will not be created.",
+    "translation_priority_help": "Priority for translations: 'output' (output_translation_file) or 'existing' (existing_translated_file)"
   }
 }

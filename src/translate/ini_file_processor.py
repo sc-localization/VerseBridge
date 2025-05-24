@@ -11,6 +11,7 @@ from src.type_defs import (
     TranslatorCallableType,
     LoggerType,
 )
+from type_defs.custom_types import IniFileListLinesType
 from .text_processor import TextProcessor
 from .buffered_file_writer import BufferedFileWriter
 
@@ -96,7 +97,7 @@ class IniFileProcessor:
         input_file: Path,
         output_file: Path,
         existing_translated_file: Optional[Path] = None,
-    ) -> Tuple[INIDataType, INIDataType]:
+    ) -> Tuple[INIDataType, INIDataType, INIDataType]:
         """
         Reads key-value pairs from input and output INI files.
 
@@ -106,31 +107,31 @@ class IniFileProcessor:
             existing_translated_file: Path to an existing translated INI file, if any.
 
         Returns:
-            Tuple[INIDataType, INIDataType]: A tuple containing the source and destination key-value pairs.
+            Tuple[INIDataType, INIDataType, INIDataType]: A tuple containing the source and destination key-value pairs.
         """
         try:
             input_items: INIDataType = self.file_utils.parse_ini_file(input_file)
-
             self.logger.debug(
                 f"Read {len(input_items)} key-value pairs from {input_file}"
             )
 
             output_items: INIDataType = {}
-
-            if existing_translated_file and existing_translated_file.exists():
-                output_items = self.file_utils.parse_ini_file(existing_translated_file)
-
-                self.logger.debug(
-                    f"Read {len(output_items)} key-value pairs from existing {existing_translated_file}"
-                )
-            elif output_file.exists():
+            if output_file.exists():
                 output_items = self.file_utils.parse_ini_file(output_file)
-
                 self.logger.debug(
-                    f"Read {len(output_items)} key-value pairs from {output_file}"
+                    f"Read {len(output_items)} key-value pairs from output {output_file}"
                 )
 
-            return input_items, output_items
+            existing_items: INIDataType = {}
+            if existing_translated_file and existing_translated_file.exists():
+                existing_items = self.file_utils.parse_ini_file(
+                    existing_translated_file
+                )
+                self.logger.debug(
+                    f"Read {len(existing_items)} key-value pairs from existing {existing_translated_file}"
+                )
+
+            return input_items, output_items, existing_items
         except Exception as e:
             self.logger.error(f"Failed to read files: {str(e)}")
             raise
@@ -139,28 +140,31 @@ class IniFileProcessor:
         self,
         input_items: INIDataType,
         output_items: INIDataType,
+        existing_items: INIDataType,
     ) -> Tuple[Set[str], Set[str], Set[str]]:
         """
-        Compares keys of input and output dictionaries:
-        1. missing_keys: The set of keys present in input_items but not in output_items.
+        Compares keys of input, output, and existing dictionaries:
+        1. missing_keys: The set of keys present in input_items but not in existing_items.
         2. obsolete_keys: The set of keys present in output_items but not in input_items.
-        3. untranslated_keys: The set of keys present in both dictionaries with identical values.
+        3. untranslated_keys: The set of keys present in both input_items and existing_items with identical values.
 
         Args:
             input_items (INIDataType): The dictionary of input items.
             output_items (INIDataType): The dictionary of output items.
+            existing_items (INIDataType): The dictionary of existing translated items.
 
         Returns:
             Tuple[Set[str], Set[str], Set[str]]: A tuple containing:
-                missing_keys: Keys present in input but not in output.
+                missing_keys: Keys present in input but not in existing.
                 obsolete_keys: Keys present in output but not in input.
-                untranslated_keys: Keys present in both with identical values.
+                untranslated_keys: Keys present in both input and existing with identical values.
         """
         input_keys: Set[str] = set(input_items.keys())
         output_keys: Set[str] = set(output_items.keys())
+        existing_keys: Set[str] = set(existing_items.keys())
         exclude_keys: ExcludeKeysType = self.config.translation_config.exclude_keys
 
-        missing_keys: Set[str] = input_keys - output_keys
+        missing_keys: Set[str] = input_keys - existing_keys
         obsolete_keys: Set[str] = output_keys - input_keys
         untranslated_keys: Set[str] = {
             key
@@ -197,25 +201,37 @@ class IniFileProcessor:
             translator: A callable for translating the text.
             existing_translated_file: Path to an existing translated INI file, if any.
         """
-
         self.logger.info(f"Translating file: {input_translation_file}")
 
-        # Extract translation destination directory and file name
+        self.logger.debug(
+            f"Translation priority: {self.config.translation_config.translation_priority}"
+        )
+
         translation_dest_dir = output_translation_file.parent
         output_file_name = output_translation_file.name
 
-        # Check if output directory exists
+        if (
+            existing_translated_file
+            and existing_translated_file == output_translation_file
+        ):
+            self.logger.error(
+                "existing_translated_file cannot be the same as output_translation_file"
+            )
+            raise ValueError(
+                "existing_translated_file cannot be the same as output_translation_file"
+            )
+
         if not translation_dest_dir.exists():
             self.logger.error(f"Output directory {translation_dest_dir} does not exist")
             raise FileNotFoundError(
                 f"Output directory {translation_dest_dir} does not exist"
             )
 
-        input_items, output_items = self._read_files(
+        input_items, output_items, existing_items = self._read_files(
             input_translation_file, output_translation_file, existing_translated_file
         )
         missing_keys, obsolete_keys, untranslated_keys = self._compare_keys(
-            input_items, output_items
+            input_items, output_items, existing_items
         )
 
         if not missing_keys and not obsolete_keys and not untranslated_keys:
@@ -223,7 +239,6 @@ class IniFileProcessor:
                 self.logger.info(
                     f"No changes detected, copying existing translations {existing_translated_file} to {translation_dest_dir}"
                 )
-
                 try:
                     self.file_utils.copy_files(
                         existing_translated_file,
@@ -235,12 +250,7 @@ class IniFileProcessor:
                         f"Failed to copy {existing_translated_file}: {str(e)}"
                     )
                     raise
-            else:
-                self.logger.warning(
-                    f"No changes detected in {input_translation_file}, skipping translation"
-                )
-
-            return
+                return
 
         with BufferedFileWriter(
             output_translation_file,
