@@ -144,9 +144,10 @@ class IniFileProcessor:
     ) -> Tuple[Set[str], Set[str], Set[str]]:
         """
         Compares keys of input, output, and existing dictionaries:
-        1. missing_keys: The set of keys present in input_items but not in existing_items.
+        1. missing_keys: The set of keys present in input_items but not in existing_items (if priority=existing) or output_items (if priority=output).
         2. obsolete_keys: The set of keys present in output_items but not in input_items.
-        3. untranslated_keys: The set of keys present in both input_items and existing_items with identical values.
+        3. untranslated_keys: The set of keys present in both input_items and existing_items with identical values,
+           filtered by output_items based on translation_priority.
 
         Args:
             input_items (INIDataType): The dictionary of input items.
@@ -155,32 +156,46 @@ class IniFileProcessor:
 
         Returns:
             Tuple[Set[str], Set[str], Set[str]]: A tuple containing:
-                missing_keys: Keys present in input but not in existing.
+                missing_keys: Keys to be translated based on priority.
                 obsolete_keys: Keys present in output but not in input.
-                untranslated_keys: Keys present in both input and existing with identical values.
+                untranslated_keys: Keys with untranslated values based on priority.
         """
         input_keys: Set[str] = set(input_items.keys())
         output_keys: Set[str] = set(output_items.keys())
         existing_keys: Set[str] = set(existing_items.keys())
         exclude_keys: ExcludeKeysType = self.config.translation_config.exclude_keys
 
-        missing_keys: Set[str] = input_keys - existing_keys
-        obsolete_keys: Set[str] = output_keys - input_keys
-        untranslated_keys: Set[str] = {
-            key
-            for key in input_items
-            if (
-                key in output_items
-                and input_items[key] == output_items[key]
+        if self.config.translation_config.translation_priority == "output":
+            missing_keys: Set[str] = input_keys - output_keys
+            untranslated_keys: Set[str] = {
+                key
+                for key in input_keys & existing_keys
+                if key
+                not in output_keys  # exclude keys not present in output_items
+                and input_items[key] == existing_items[key]
                 and key not in exclude_keys
                 and input_items[key]
-            )
-        }
+            }
+        else:  # translation_priority == "existing"
+            missing_keys: Set[str] = input_keys - existing_keys
+            untranslated_keys: Set[str] = {
+                key
+                for key in input_keys & existing_keys
+                if input_items[key] == existing_items[key]
+                and key not in exclude_keys
+                and input_items[key]
+            }
 
-        self.logger.info(f"Found {len(missing_keys)} new keys for translation")
-        self.logger.info(f"Found {len(obsolete_keys)} obsolete keys to remove")
+        obsolete_keys: Set[str] = output_keys - input_keys
+
         self.logger.info(
-            f"Found {len(untranslated_keys)} keys with not translated value"
+            f"Found {len(missing_keys)} new keys for translation"
+        )
+        self.logger.info(
+            f"Found {len(obsolete_keys)} obsolete keys to remove"
+        )
+        self.logger.info(
+            f"Found {len(untranslated_keys)} keys with not translated values"
         )
 
         return missing_keys, obsolete_keys, untranslated_keys
