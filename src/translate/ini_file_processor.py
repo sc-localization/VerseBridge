@@ -54,7 +54,7 @@ class IniFileProcessor:
 
         return key in missing_keys or key in untranslated_keys
 
-    def process_line(
+    def _process_line(
         self,
         key: str,
         value: str,
@@ -290,7 +290,7 @@ class IniFileProcessor:
                 if key in obsolete_keys:
                     continue
 
-                translated_line = self.process_line(
+                translated_line = self._process_line(
                     key,
                     value,
                     translator,
