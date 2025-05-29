@@ -3,7 +3,13 @@ from transformers import PreTrainedTokenizerBase, BatchEncoding
 
 
 from src.config import ConfigManager
-from src.type_defs import InitializedModelType, LoggerType, TranslatorCallableType
+from src.type_defs import (
+    InitializedModelType,
+    LoggerType,
+    TranslatorCallableType,
+    INIFIleValueType,
+    TranslatedIniValueType,
+)
 from src.utils import MemoryManager
 from .text_processor import TextProcessor
 
@@ -66,7 +72,7 @@ class Translator:
                 "Model and tokenizer must be initialized before creating translator"
             )
 
-        def translate(text: str) -> str:
+        def translate(text: INIFIleValueType) -> TranslatedIniValueType:
             self.tokenizer.src_lang = self.config.lang_config.src_nllb_lang_code
             self.tokenizer.tgt_lang = self.config.lang_config.tgt_nllb_lang_code
 
