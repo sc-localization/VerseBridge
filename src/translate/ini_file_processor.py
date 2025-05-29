@@ -10,8 +10,9 @@ from src.type_defs import (
     INIDataType,
     TranslatorCallableType,
     LoggerType,
+    IniFileListLinesType,
 )
-from type_defs.custom_types import IniFileListLinesType
+from type_defs.custom_types import INIFIleKeyType, INIFIleValueType
 from .text_processor import TextProcessor
 from .buffered_file_writer import BufferedFileWriter
 
@@ -30,11 +31,11 @@ class IniFileProcessor:
 
     def _should_translate(
         self,
-        key: str,
-        value: str,
+        key: INIFIleKeyType,
+        value: INIFIleValueType,
         exclude_keys: ExcludeKeysType,
-        missing_keys: Set[str],
-        untranslated_keys: Set[str],
+        missing_keys: Set[INIFIleKeyType],
+        untranslated_keys: Set[INIFIleKeyType],
     ) -> bool:
         """
         Checks if a key-value pair should be translated.
@@ -56,13 +57,13 @@ class IniFileProcessor:
 
     def _process_line(
         self,
-        key: str,
-        value: str,
+        key: INIFIleKeyType,
+        value: INIFIleValueType,
         translator: TranslatorCallableType,
         translated_lines: INIDataType,
         exclude_keys: ExcludeKeysType,
-        missing_keys: Set[str],
-        untranslated_keys: Set[str],
+        missing_keys: Set[INIFIleKeyType],
+        untranslated_keys: Set[INIFIleKeyType],
     ) -> str:
         """
         Processes a line by translating its value if necessary.
@@ -141,7 +142,7 @@ class IniFileProcessor:
         input_items: INIDataType,
         output_items: INIDataType,
         existing_items: INIDataType,
-    ) -> Tuple[Set[str], Set[str], Set[str]]:
+    ) -> Tuple[Set[INIFIleKeyType], Set[INIFIleKeyType], Set[INIFIleKeyType]]:
         """
         Compares keys of input, output, and existing dictionaries:
         1. missing_keys: The set of keys present in input_items but not in existing_items (if priority=existing) or output_items (if priority=output).
@@ -176,8 +177,8 @@ class IniFileProcessor:
                 and input_items[key]
             }
         else:  # translation_priority == "existing"
-            missing_keys: Set[str] = input_keys - existing_keys
-            untranslated_keys: Set[str] = {
+            missing_keys: Set[INIFIleKeyType] = input_keys - existing_keys
+            untranslated_keys: Set[INIFIleKeyType] = {
                 key
                 for key in input_keys & existing_keys
                 if input_items[key] == existing_items[key]
@@ -185,7 +186,7 @@ class IniFileProcessor:
                 and input_items[key]
             }
 
-        obsolete_keys: Set[str] = output_keys - input_keys
+        obsolete_keys: Set[INIFIleKeyType] = output_keys - input_keys
 
         self.logger.info(f"Found {len(missing_keys)} new keys for translation")
         self.logger.info(f"Found {len(obsolete_keys)} obsolete keys to remove")
