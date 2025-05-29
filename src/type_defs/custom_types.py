@@ -120,7 +120,10 @@ INIFIleKeyType: TypeAlias = str
 INIFIleValueType: TypeAlias = str
 KeyValuePairType: TypeAlias = Tuple[INIFIleKeyType, INIFIleValueType]
 IniLineType: TypeAlias = Literal[f"{INIFIleKeyType}={INIFIleValueType}"]
-TranslatedIniLineType: TypeAlias = Literal[f"{INIFIleKeyType}={INIFIleValueType}"]
+TranslatedIniValueType: TypeAlias = INIFIleValueType
+TranslatedIniLineType: TypeAlias = Literal[
+    f"{INIFIleKeyType}={INIFIleValueType|TranslatedIniValueType}"
+]
 
 INIDataType: TypeAlias = Dict[INIFIleKeyType, INIFIleValueType]
 
@@ -157,7 +160,7 @@ LastCheckpointPathType: TypeAlias = Optional[Path]
 InitializedModelType = PeftModel | PeftMixedModel | PreTrainedModel
 TranslatedFileNameType = Optional[str]
 
-BufferType: TypeAlias = List[str]
+BufferType: TypeAlias = List[TranslatedIniLineType]
 
 TranslatorCallableType: TypeAlias = Callable[[str], str]
 
@@ -252,7 +255,7 @@ def is_ini_file_line(line: Any) -> TypeGuard[IniLineType]:
 
     key, _ = line.split("=", 1)
 
-    if not key:
+    if not key:  # line must be with empty value
         return False
 
     return True

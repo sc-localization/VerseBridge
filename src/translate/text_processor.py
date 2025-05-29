@@ -6,6 +6,8 @@ from src.type_defs import (
     ProtectedPatternsType,
     PlaceholdersType,
     TranslatorCallableType,
+    INIFIleValueType,
+    TranslatedIniValueType,
 )
 
 
@@ -14,8 +16,8 @@ class TextProcessor:
         self.pattern = re.compile("|".join(protected_patterns))
 
     def protect_placeholders(
-        self, text: str
-    ) -> Tuple[str, PlaceholdersType]:
+        self, text: INIFIleValueType
+    ) -> Tuple[INIFIleValueType, PlaceholdersType]:
         """
         Protects special patterns in the text by replacing them with placeholders.
 
@@ -40,8 +42,8 @@ class TextProcessor:
         return modified_text, placeholders
 
     def restore_placeholders(
-        self, translated_text: str, placeholders: PlaceholdersType
-    ) -> str:
+        self, translated_text: TranslatedIniValueType, placeholders: PlaceholdersType
+    ) -> TranslatedIniValueType:
         """
         Restores protected patterns in the translated text by replacing placeholders with original values.
 
@@ -52,7 +54,7 @@ class TextProcessor:
         Returns:
             str: The text with placeholders replaced with original values.
         """
-        result: str = translated_text
+        result = translated_text
 
         for key, value in placeholders.items():
             result = re.sub(re.escape(key), value, result)
@@ -98,7 +100,9 @@ class TextProcessor:
 
         return chunks
 
-    def translate_text(self, text: str, translator: TranslatorCallableType) -> str:
+    def translate_text(
+        self, text: INIFIleValueType, translator: TranslatorCallableType
+    ) -> TranslatedIniValueType:
         if not text:
             return text
 

@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from src.type_defs import BufferType
+from src.type_defs import BufferType, TranslatedIniLineType
 from src.utils import MemoryManager
 
 
@@ -33,7 +33,7 @@ class BufferedFileWriter:
         if self.file:
             self.file.close()
 
-    def write(self, line: str) -> None:
+    def write(self, line: TranslatedIniLineType) -> None:
         """
         Adds a line to the buffer and flushes it if full.
 

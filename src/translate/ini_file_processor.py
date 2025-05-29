@@ -11,8 +11,12 @@ from src.type_defs import (
     TranslatorCallableType,
     LoggerType,
     IniFileListLinesType,
+    INIFIleKeyType,
+    INIFIleValueType,
+    TranslatedIniLineType,
+    TranslatedIniValueType,
+    is_ini_file_line,
 )
-from type_defs.custom_types import INIFIleKeyType, INIFIleValueType
 from .text_processor import TextProcessor
 from .buffered_file_writer import BufferedFileWriter
 
@@ -64,7 +68,7 @@ class IniFileProcessor:
         exclude_keys: ExcludeKeysType,
         missing_keys: Set[INIFIleKeyType],
         untranslated_keys: Set[INIFIleKeyType],
-    ) -> str:
+    ) -> TranslatedIniLineType:
         """
         Processes a line by translating its value if necessary.
 
@@ -83,15 +87,23 @@ class IniFileProcessor:
         if self._should_translate(
             key, value, exclude_keys, missing_keys, untranslated_keys
         ):
-            translated_value: str = self.text_processor.translate_text(
-                value, translator
+            translated_value: TranslatedIniValueType = (
+                self.text_processor.translate_text(value, translator)
             )
         else:
-            translated_value: str = translated_lines.get(key, value)
+            translated_value: INIFIleValueType = translated_lines.get(key, value)
 
-        translated_lines[key] = translated_value
+        translation_result = f"{key}={translated_value}\n"
 
-        return f"{key}={translated_value}\n"
+        if not is_ini_file_line(translation_result):
+            self.logger.error(
+                f"Invalid INI line format for key '{key}': {translation_result}"
+            )
+            raise ValueError(
+                f"Invalid INI line format for key '{key}': {translation_result}"
+            )
+
+        return translation_result
 
     def _read_files(
         self,
