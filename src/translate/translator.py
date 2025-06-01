@@ -42,7 +42,8 @@ class Translator:
             self.logger.error("Model is not initialized")
             raise ValueError("Model must be initialized before generating translation")
 
-        max_new_tokens = int(min_tokens + scale_factor * inputs["input_ids"].shape[1])  # type: ignore
+        inputs_length = inputs.input_ids.shape[1]  # type: ignore
+        max_new_tokens = int(min_tokens + scale_factor * inputs_length)  # type: ignore
         generation_config = self.config.generation_config.to_dict()
 
         try:
@@ -50,7 +51,7 @@ class Translator:
                 translated_tokens = self.model.generate(
                     **inputs,  # type: ignore
                     max_new_tokens=max_new_tokens,
-                    min_length=inputs["input_ids"].shape[1],  # type: ignore
+                    min_length=inputs_length,  # type: ignore
                     forced_bos_token_id=self.tokenizer.convert_tokens_to_ids(  # type: ignore
                         target_lang_code
                     ),
