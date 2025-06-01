@@ -1,7 +1,6 @@
 import torch
 from transformers import PreTrainedTokenizerBase, BatchEncoding
 
-
 from src.config import ConfigManager
 from src.type_defs import (
     InitializedModelType,
@@ -46,8 +45,6 @@ class Translator:
         max_new_tokens = int(min_tokens + scale_factor * inputs_length)  # type: ignore
         min_len = int(inputs_length * 1.1) if inputs_length > 10 else None  # type: ignore
 
-        generation_config = self.config.generation_config.to_dict()
-
         try:
             with torch.no_grad(), torch.amp.autocast("cuda"):
                 translated_tokens = self.model.generate(
@@ -57,7 +54,7 @@ class Translator:
                     forced_bos_token_id=self.tokenizer.convert_tokens_to_ids(  # type: ignore
                         target_lang_code
                     ),
-                    **generation_config,
+                    generation_config=self.config.generation_config.to_generation_config(),
                 )
 
             generated_text = self.tokenizer.batch_decode(

@@ -1,5 +1,5 @@
 from .dataset import DatasetConfig
-from .generation import GenerationConfig
+from .generation import GenerationConfigParams
 from .language import LanguageConfig
 from .logging import LoggingConfig
 from .lora import LoraConfig
@@ -20,7 +20,7 @@ class ConfigManager:
         translation_priority: TranslationPriorityType = "output",
     ):
         self.dataset_config = DatasetConfig()
-        self.generation_config = GenerationConfig()
+        self.generation_config = GenerationConfigParams()
         self.path_config = PathConfig(input_file_path)
         self.lang_config = LanguageConfig(src_lang, tgt_lang)
         self.lora_config = LoraConfig()

@@ -53,11 +53,7 @@ class LogConfigType(NamedTuple):
     logger_name: str
 
 
-class GenerationConfigType(TypedDict):
-    num_beams: int
-    top_k: int
-    top_p: float
-    do_sample: bool
+GenerationConfigType: TypeAlias = Dict[str, Any]
 
 
 class TokenizerConfigType(TypedDict):
