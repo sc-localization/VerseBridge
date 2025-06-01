@@ -44,6 +44,8 @@ class Translator:
 
         inputs_length = inputs.input_ids.shape[1]  # type: ignore
         max_new_tokens = int(min_tokens + scale_factor * inputs_length)  # type: ignore
+        min_len = int(inputs_length * 1.1) if inputs_length > 10 else None  # type: ignore
+
         generation_config = self.config.generation_config.to_dict()
 
         try:
@@ -51,7 +53,7 @@ class Translator:
                 translated_tokens = self.model.generate(
                     **inputs,  # type: ignore
                     max_new_tokens=max_new_tokens,
-                    min_length=inputs_length,  # type: ignore
+                    min_new_tokens=min_len,  # type: ignore
                     forced_bos_token_id=self.tokenizer.convert_tokens_to_ids(  # type: ignore
                         target_lang_code
                     ),
