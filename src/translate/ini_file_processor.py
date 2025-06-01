@@ -273,7 +273,10 @@ class IniFileProcessor:
                         f"Failed to copy {existing_translated_file}: {str(e)}"
                     )
                     raise
-                return
+            else:
+                self.logger.info(f"No changes detected, skipping translation")
+
+            return
 
         lines: IniFileListLinesType = [
             (key, value)
