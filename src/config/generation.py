@@ -14,9 +14,7 @@ class GenerationConfigParams:
     """
 
     num_beams: int = 6
-    top_k: int = 50
-    top_p: float = 0.95
-    do_sample: bool = True
+    early_stopping: bool = True
 
     def to_dict(self) -> GenerationConfigType:
         return asdict(self)
