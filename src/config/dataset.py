@@ -14,5 +14,5 @@ class DatasetConfig:
             "return_tensors": "pt",
             "padding": True,
             "truncation": True,
-            "max_length": self.max_training_length,
+            "max_length": self.max_model_length,
         }
