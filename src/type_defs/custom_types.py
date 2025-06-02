@@ -123,8 +123,6 @@ TranslatedIniLineType: TypeAlias = Literal[
 
 INIDataType: TypeAlias = Dict[INIFIleKeyType, INIFIleValueType]
 
-IniFileListLinesType: TypeAlias = List[KeyValuePairType]
-
 HelpStringsDictType: TypeAlias = Dict[str, str]
 
 

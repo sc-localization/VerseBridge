@@ -10,7 +10,6 @@ from src.type_defs import (
     INIDataType,
     TranslatorCallableType,
     LoggerType,
-    IniFileListLinesType,
     INIFIleKeyType,
     INIFIleValueType,
     TranslatedIniLineType,
@@ -278,23 +277,17 @@ class IniFileProcessor:
 
             return
 
-        lines: IniFileListLinesType = [
-            (key, value)
-            for key, value in input_items.items()
-            if key not in obsolete_keys
-        ]
-
-        translated_lines: INIDataType = {}
+        lines_to_translate: INIDataType = {}
 
         if self.config.translation_config.translation_priority == "output":
-            translated_lines = output_items.copy()
-            translated_lines.update(
-                {k: v for k, v in existing_items.items() if k not in translated_lines}
+            lines_to_translate = output_items.copy()
+            lines_to_translate.update(
+                {k: v for k, v in existing_items.items() if k not in lines_to_translate}
             )
         else:  # translation_priority == "existing"
-            translated_lines = existing_items.copy()
-            translated_lines.update(
-                {k: v for k, v in output_items.items() if k not in translated_lines}
+            lines_to_translate = existing_items.copy()
+            lines_to_translate.update(
+                {k: v for k, v in input_items.items() if k not in lines_to_translate}
             )
 
         with BufferedFileWriter(
@@ -302,7 +295,7 @@ class IniFileProcessor:
             self.config.translation_config.buffer_size,
             self.logger,
         ) as writer:
-            for key, value in tqdm(lines, desc="Translating INI", total=len(lines)):
+            for key, value in tqdm(lines_to_translate.items(), desc="Translating INI", total=len(lines_to_translate)):
                 if key in obsolete_keys:
                     continue
 
