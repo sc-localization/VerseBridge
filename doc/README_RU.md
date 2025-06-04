@@ -162,8 +162,6 @@ uv run -m scripts.run_training
 
 **2. Перевод (run_translation.py)**
 
-**Примеры:**
-
 - перевести все INI-файлы в исходной директории:
 
 ```sh
