@@ -69,6 +69,7 @@ def parse_args() -> argparse.Namespace:
         "--input-file-path",
         type=str,
         default=None,
+        required=True,
         metavar="",
         help=help_strings["input_path_help"],
     )
