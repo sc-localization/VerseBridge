@@ -63,7 +63,7 @@ class IniFileProcessor:
         key: INIFIleKeyType,
         value: INIFIleValueType,
         translator: TranslatorCallableType,
-        translated_lines: INIDataType,
+        processed_lines: INIDataType,
         exclude_keys: ExcludeKeysType,
         missing_keys: Set[INIFIleKeyType],
         untranslated_keys: Set[INIFIleKeyType],
@@ -75,10 +75,10 @@ class IniFileProcessor:
             key (str): The key of the line.
             value (str): The value of the line.
             translator (TranslatorCallableType): A callable for translating the text.
-            translated_lines (INIDataType): A dictionary containing already translated lines.
+            processed_lines (INIDataType): A dictionary containing lines to be processed (translated or existing).
             exclude_keys (ExcludeKeysType): A tuple of keys to exclude from translation.
-            missing_keys (Set[str]): Keys present in input but not in output.
-            keys_needing_translation (Set[str]): Keys with untranslated values.
+            missing_keys (Set[str]): Keys present in input but not in output or existing items.
+            untranslated_keys (Set[str]): Keys with untranslated values in existing items.
 
         Returns:
             str: The processed line in the format 'key=value'.
@@ -90,7 +90,7 @@ class IniFileProcessor:
                 self.text_processor.translate_text(value, translator)
             )
         else:
-            translated_value: INIFIleValueType = translated_lines.get(key, value)
+            translated_value: INIFIleValueType = processed_lines.get(key, value)
 
         translation_result = f"{key}={translated_value}\n"
 
@@ -177,33 +177,28 @@ class IniFileProcessor:
         existing_keys: Set[str] = set(existing_items.keys())
         exclude_keys: ExcludeKeysType = self.config.translation_config.exclude_keys
 
-        if self.config.translation_config.translation_priority == "output":
-            missing_keys: Set[str] = input_keys - output_keys
-            untranslated_keys: Set[str] = {
-                key
-                for key in input_keys & existing_keys
-                if key not in output_keys  # exclude keys not present in output_items
-                and input_items[key] == existing_items[key]
-                and key not in exclude_keys
-                and input_items[key]
-            }
-        else:  # translation_priority == "existing"
-            missing_keys: Set[INIFIleKeyType] = input_keys - existing_keys
-            untranslated_keys: Set[INIFIleKeyType] = {
-                key
-                for key in input_keys & existing_keys
-                if input_items[key] == existing_items[key]
-                and key not in exclude_keys
-                and input_items[key]
-            }
-
-        obsolete_keys: Set[INIFIleKeyType] = output_keys - input_keys
+        # New keys: absent in output_items and existing_items (or translated in existing_items)
+        missing_keys = input_keys - output_keys - existing_keys
+        # Obsolete keys: present in output_items but absent in input_items
+        obsolete_keys = output_keys - input_keys
+        # Untranslated keys: present in existing_items, but values match input_items
+        untranslated_keys = {
+            key
+            for key in input_keys & existing_keys
+            if key not in output_keys
+            and input_items[key] == existing_items[key]
+            and key not in exclude_keys
+            and input_items[key]
+        }
 
         self.logger.info(f"Found {len(missing_keys)} new keys for translation")
         self.logger.info(f"Found {len(obsolete_keys)} obsolete keys to remove")
-        self.logger.info(
-            f"Found {len(untranslated_keys)} keys with not translated values"
-        )
+        if untranslated_keys:
+            self.logger.info(
+                f"Found {len(untranslated_keys)} keys with not translated values"
+            )
+        else:
+            self.logger.info("No untranslated keys found")
 
         return missing_keys, obsolete_keys, untranslated_keys
 
@@ -224,13 +219,11 @@ class IniFileProcessor:
             existing_translated_file: Path to an existing translated INI file, if any.
         """
         self.logger.info(f"Translating file: {input_translation_file}")
-
-        self.logger.debug(
-            f"Translation priority: {self.config.translation_config.translation_priority}"
-        )
-
-        translation_dest_dir = output_translation_file.parent
-        output_file_name = output_translation_file.name
+        self.logger.debug(f"Output file: {output_translation_file}")
+        if existing_translated_file:
+            self.logger.debug(
+                f"Using existing translations from: {existing_translated_file}"
+            )
 
         if (
             existing_translated_file
@@ -243,6 +236,8 @@ class IniFileProcessor:
                 "existing_translated_file cannot be the same as output_translation_file"
             )
 
+        translation_dest_dir = output_translation_file.parent
+
         if not translation_dest_dir.exists():
             self.logger.error(f"Output directory {translation_dest_dir} does not exist")
             raise FileNotFoundError(
@@ -252,12 +247,17 @@ class IniFileProcessor:
         input_items, output_items, existing_items = self._read_files(
             input_translation_file, output_translation_file, existing_translated_file
         )
+
         missing_keys, obsolete_keys, untranslated_keys = self._compare_keys(
             input_items, output_items, existing_items
         )
 
         if not missing_keys and not obsolete_keys and not untranslated_keys:
-            if existing_translated_file and existing_translated_file.exists():
+            if (
+                existing_translated_file
+                and existing_translated_file.exists()
+                and not output_translation_file.exists()
+            ):
                 self.logger.info(
                     f"No changes detected, copying existing translations {existing_translated_file} to {translation_dest_dir}"
                 )
@@ -265,7 +265,7 @@ class IniFileProcessor:
                     self.file_utils.copy_files(
                         existing_translated_file,
                         translation_dest_dir,
-                        dest_name=output_file_name,
+                        dest_name=output_translation_file.name,
                     )
                 except Exception as e:
                     self.logger.error(
@@ -277,25 +277,29 @@ class IniFileProcessor:
 
             return
 
-        lines_to_translate: INIDataType = {}
+        input_keys = set(input_items.keys())
 
-        if self.config.translation_config.translation_priority == "output":
-            lines_to_translate = output_items.copy()
-            lines_to_translate.update(
-                {k: v for k, v in existing_items.items() if k not in lines_to_translate}
-            )
-        else:  # translation_priority == "existing"
-            lines_to_translate = existing_items.copy()
-            lines_to_translate.update(
-                {k: v for k, v in input_items.items() if k not in lines_to_translate}
-            )
+        # Combine translations: priority output_items > existing_items > new translation
+        processed_lines: INIDataType = output_items.copy()
+
+        for key in input_keys:
+            if key not in processed_lines:
+                if key in existing_items:
+                    processed_lines[key] = existing_items[key]
+                else:
+                    processed_lines[key] = input_items[key]
 
         with BufferedFileWriter(
             output_translation_file,
             self.config.translation_config.buffer_size,
             self.logger,
         ) as writer:
-            for key, value in tqdm(lines_to_translate.items(), desc="Translating INI", total=len(lines_to_translate)):
+            for key, value in tqdm(
+                sorted(processed_lines.items()),
+                desc="Translating INI",
+                total=len(processed_lines),
+                unit="lines",
+            ):
                 if key in obsolete_keys:
                     continue
 
@@ -303,7 +307,7 @@ class IniFileProcessor:
                     key,
                     value,
                     translator,
-                    output_items,
+                    processed_lines,
                     self.config.translation_config.exclude_keys,
                     missing_keys,
                     untranslated_keys,
