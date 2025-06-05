@@ -1,3 +1,4 @@
+from typing import Optional
 from .dataset import DatasetConfig
 from .generation import GenerationConfigParams
 from .language import LanguageConfig
@@ -8,7 +9,7 @@ from .paths import PathConfig
 from .training import TrainingConfig
 from .translation import TranslationConfig
 
-from src.type_defs import LangCode, TranslationPriorityType
+from src.type_defs import LangCode
 
 
 class ConfigManager:
@@ -16,8 +17,7 @@ class ConfigManager:
         self,
         src_lang: LangCode = LangCode.EN,
         tgt_lang: LangCode = LangCode.RU,
-        input_file_path: str | None = None,
-        translation_priority: TranslationPriorityType = "output",
+        input_file_path: Optional[str] = None,
     ):
         self.dataset_config = DatasetConfig()
         self.generation_config = GenerationConfigParams()
@@ -27,6 +27,4 @@ class ConfigManager:
         self.logging_config = LoggingConfig()
         self.model_config = ModelConfig(self.path_config)
         self.training_config = TrainingConfig(str(self.path_config.logging_dir))
-        self.translation_config = TranslationConfig(
-            self.path_config, self.lang_config, translation_priority
-        )
+        self.translation_config = TranslationConfig(self.path_config, self.lang_config)

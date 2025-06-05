@@ -4,7 +4,7 @@ from pathlib import Path
 from src.type_defs import (
     ExcludeKeysType,
     ProtectedPatternsType,
-    TranslationPriorityType,
+    # TranslationPriorityType,
 )
 from .language import LanguageConfig
 from .paths import PathConfig
@@ -14,9 +14,6 @@ from .paths import PathConfig
 class TranslationConfig:
     path_config: PathConfig
     lang_config: LanguageConfig
-    translation_priority: TranslationPriorityType = field(
-        default="output"
-    )  # "output", "existing"
 
     translation_src_dir: Path = field(init=False)
     translation_dest_dir: Path = field(init=False)
