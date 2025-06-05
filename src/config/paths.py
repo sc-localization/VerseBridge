@@ -9,7 +9,7 @@ from src.type_defs import IniFilePathsType, JsonFilePathsType
 class PathConfig:
     input_file_path: str | None = None
     original_ini_file: str = "global_original.ini"
-    translated_ini_file: str = "global_pre_translated.ini"
+    pre_translated_ini_file_for_training: str = "global_pre_translated.ini"
 
     base_dir: Path = field(init=False)
     data_dir: Path = field(init=False)
@@ -35,7 +35,7 @@ class PathConfig:
                 if self.input_file_path
                 else self.data_dir / self.original_ini_file
             ),
-            translated=self.data_dir / self.translated_ini_file,
+            translated=self.data_dir / self.pre_translated_ini_file_for_training,
         )
 
         self.json_files = JsonFilePathsType(

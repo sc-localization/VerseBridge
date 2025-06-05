@@ -101,15 +101,15 @@ class TranslationPipeline:
 
             # 7. Translating INI files
             for file_name in ini_files:
-                input_translation_file = translation_src_dir / file_name
+                translation_input_file = translation_src_dir / file_name
 
-                output_translation_file = translation_dest_dir / (
+                translation_result_file = translation_dest_dir / (
                     translated_file_name or file_name
                 )
 
                 self.ini_file_processor.translate_file(
-                    input_translation_file,
-                    output_translation_file,
+                    translation_input_file,
+                    translation_result_file,
                     translator,
                     existing_translated_file=existing_translated_ini_file_path,
                 )
