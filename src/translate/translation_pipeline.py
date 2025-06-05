@@ -53,6 +53,10 @@ class TranslationPipeline:
         translation_src_dir = self.config.translation_config.translation_src_dir
         translation_dest_dir = self.config.translation_config.translation_dest_dir
 
+        existing_translated_ini_file_path = (
+            Path(existing_translated_file) if existing_translated_file else None
+        )
+
         model = None
         tokenizer = None
 
@@ -107,11 +111,7 @@ class TranslationPipeline:
                     input_translation_file,
                     output_translation_file,
                     translator,
-                    existing_translated_file=(
-                        Path(existing_translated_file)
-                        if existing_translated_file
-                        else None
-                    ),
+                    existing_translated_file=existing_translated_ini_file_path,
                 )
 
             self.logger.info("✅ Translation pipeline completed successfully")
