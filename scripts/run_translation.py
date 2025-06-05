@@ -79,12 +79,6 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help=help_strings["existing_translated_file_help"],
     )
-    parser.add_argument(
-        "--translation-priority",
-        default="output",
-        choices=["output", "existing"],
-        help=help_strings["translation_priority_help"],
-    )
 
     args = parser.parse_args()
 
@@ -108,10 +102,6 @@ def parse_args() -> argparse.Namespace:
             f"Existing translated file {args.existing_translated_file} does not exist"
         )
 
-    # Validate translation_priority
-    if args.translation_priority not in ["output", "existing"]:
-        parser.error("translation_priority must be 'output' or 'existing'")
-
     return args
 
 
@@ -129,7 +119,6 @@ def main():
         src_lang=args.src_lang,
         tgt_lang=args.tgt_lang,
         input_file_path=args.input_file_path,
-        translation_priority=args.translation_priority,
     )
 
     logger = initialize_logger(config_manager)
