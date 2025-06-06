@@ -66,12 +66,12 @@ def parse_args() -> argparse.Namespace:
         help=help_strings["translated_file_name_help"],
     )
     path_group.add_argument(
-        "--input-file-path",
+        "--input-file",
         type=str,
         default=None,
         required=True,
         metavar="",
-        help=help_strings["input_path_help"],
+        help=help_strings["input_file_help"],
     )
     path_group.add_argument(
         "--existing-translated-file",
@@ -118,7 +118,7 @@ def main():
     config_manager = ConfigManager(
         src_lang=args.src_lang,
         tgt_lang=args.tgt_lang,
-        input_file_path=args.input_file_path,
+        input_ini_file=args.input_ini_file,
     )
 
     logger = initialize_logger(config_manager)
