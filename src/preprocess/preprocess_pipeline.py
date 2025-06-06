@@ -39,15 +39,13 @@ class PreprocessPipeline:
         self.logger.info("🚀 Starting preprocessing pipeline")
 
         try:
-            self.config.path_config.check_ini_files_for_training_exist()
+            self.config.training_path_config.check_ini_files_exist()
 
-            original_ini = self.config.path_config.ini_files_for_training["original"]
-            translated_ini = self.config.path_config.ini_files_for_training[
-                "translated"
-            ]
+            original_ini = self.config.training_path_config.ini_files["original"]
+            translated_ini = self.config.training_path_config.ini_files["translated"]
 
             # Path to intermediate JSON files
-            json_path = self.config.path_config.json_files
+            json_path = self.config.training_path_config.json_files
             data_json_path = json_path["data"]
             cleaned_json_path = json_path["cleaned"]
             train_json_path = json_path["train"]

@@ -53,18 +53,18 @@ class TranslationPipeline:
         tokenizer = None
 
         try:
-            self.config.path_config.check_input_ini_file_exists()
+            self.config.translation_path_config.check_input_file_exists()
 
-            input_ini_file_path = self.config.translation_config.input_ini_file_path
+            input_file_path = self.config.translation_path_config.input_file_path
             translation_src_dir = self.config.translation_config.translation_src_dir
             translation_dest_dir = self.config.translation_config.translation_dest_dir
 
-            existing_translated_ini_file_path = (
+            existing_translated_file_path = (
                 Path(existing_translated_file) if existing_translated_file else None
             )
 
             # 1. Copying input `.ini` file
-            self.file_utils.copy_files(input_ini_file_path, translation_src_dir)
+            self.file_utils.copy_files(input_file_path, translation_src_dir)
 
             # 2. Initialize model
             model = self.model_initializer.initialize(
@@ -105,7 +105,7 @@ class TranslationPipeline:
                     translation_input_file,
                     translation_result_file,
                     translator,
-                    existing_translated_file=existing_translated_ini_file_path,
+                    existing_translated_file=existing_translated_file_path,
                 )
 
             self.logger.info("✅ Translation pipeline completed successfully")

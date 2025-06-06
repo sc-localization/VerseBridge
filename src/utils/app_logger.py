@@ -32,7 +32,7 @@ class AppLogger:
         default_log_file, default_log_name = config.logging_config.default
 
         self.logger_name = name or default_log_name
-        self.log_dir = Path(log_dir or config.path_config.logging_dir)
+        self.log_dir = Path(log_dir or config.base_path_config.logging_dir)
         self.log_file = self.log_dir / (log_file or default_log_file)
 
         if not self.log_file.name.endswith(".log"):

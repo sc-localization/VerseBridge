@@ -96,7 +96,7 @@ class ModelInitializer:
             model_type = "checkpoint"
         else:
             model_type = "lora" if use_lora else "base_model"
-            model_dir = self.config.path_config.models_dir / model_type
+            model_dir = self.config.base_path_config.models_dir / model_type
 
         result_path = model_dir / "result"
         checkpoints_path = model_dir / "checkpoints"
@@ -145,7 +145,7 @@ class ModelInitializer:
                 self.logger.warning(
                     f"Invalid model directory {model_dir}, using base model paths"
                 )
-                model_dir = self.config.path_config.models_dir / "base_model"
+                model_dir = self.config.base_path_config.models_dir / "base_model"
 
             result_path = model_dir / "result"
             checkpoints_path = model_dir / "checkpoints"
