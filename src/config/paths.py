@@ -7,6 +7,9 @@ from src.type_defs import IniFilePathsType, JsonFilePathsType
 
 @dataclass
 class BasePathConfig:
+    default_source_file: str = "global_original.ini"
+    pre_translated_file: str = "global_pre_translated.ini"
+
     base_dir: Path = field(init=False)
     data_dir: Path = field(init=False)
     models_dir: Path = field(init=False)
@@ -26,7 +29,7 @@ class BasePathConfig:
 class TranslationPathConfig(BasePathConfig):
     input_file: Optional[str] = None
     translation_dir: Path = field(init=False)
-    input_file_path: Optional[Path] = field(init=False)
+    input_file_path: Path = field(init=False)
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -35,7 +38,7 @@ class TranslationPathConfig(BasePathConfig):
 
         # Initialize input_file_path
         if self.input_file is None:
-            self.input_file_path = None
+            self.input_file_path = self.data_dir / self.default_source_file
         else:
             self.input_file_path = Path(self.input_file)
 
@@ -45,7 +48,7 @@ class TranslationPathConfig(BasePathConfig):
                 )
 
     def check_input_file_exists(self) -> None:
-        if self.input_file_path is None or not self.input_file_path.exists():
+        if not self.input_file_path.exists():
             raise FileNotFoundError(
                 f"The input INI file does not exist: {self.input_file_path}"
             )
@@ -53,8 +56,6 @@ class TranslationPathConfig(BasePathConfig):
 
 @dataclass
 class TrainingPathConfig(BasePathConfig):
-    training_source_file: str = "global_original.ini"
-    pre_translated_file: str = "global_pre_translated.ini"
     ini_files: IniFilePathsType = field(init=False)
     json_files: JsonFilePathsType = field(init=False)
 
@@ -62,10 +63,8 @@ class TrainingPathConfig(BasePathConfig):
         super().__post_init__()
 
         self.ini_files = IniFilePathsType(
-            source=self.data_dir
-            / self.training_source_file,  # Default for translation if needed
+            original=self.data_dir / self.default_source_file,
             translated=self.data_dir / self.pre_translated_file,
-            training_source=self.data_dir / self.training_source_file,
         )
 
         self.json_files = JsonFilePathsType(
@@ -80,9 +79,8 @@ class TrainingPathConfig(BasePathConfig):
 
     def check_ini_files_exist(self) -> None:
         ini_values: List[Path] = [
-            self.ini_files["source"],
+            self.ini_files["original"],
             self.ini_files["translated"],
-            self.ini_files["training_source"],
         ]
         missing_files: List[Path] = [path for path in ini_values if not path.exists()]
 
