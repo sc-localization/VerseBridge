@@ -1,3 +1,4 @@
+from typing import List
 import torch
 from transformers import PreTrainedTokenizerBase, BatchEncoding
 
@@ -73,6 +74,7 @@ class Translator:
             )
 
         def translate(text: INIFIleValueType) -> TranslatedIniValueType:
+            print(text)
             self.tokenizer.src_lang = self.config.lang_config.src_nllb_lang_code
             self.tokenizer.tgt_lang = self.config.lang_config.tgt_nllb_lang_code
 
@@ -83,24 +85,31 @@ class Translator:
             input_length = len(tokens["input_ids"][0])  # type: ignore
 
             if input_length > max_model_length:
-                self.logger.info(f"Text too long ({input_length} tokens), splitting...")
+                self.logger.debug(f"Text too long ({input_length} tokens), splitting...")
 
                 parts = self.text_processor.split_text(
-                    text, self.tokenizer, max_model_length
+                    text, self.tokenizer, max_model_length, tokenizer_args
                 )
 
-                inputs = self.tokenizer(parts, **tokenizer_args)
-                inputs = inputs.to(self.device)
+                translated_parts: List[str] = []
 
-                translated_text = self.generate_translation(
-                    inputs, self.config.lang_config.tgt_nllb_lang_code
-                )
+                for part in parts:
+                    inputs = self.tokenizer(part, **tokenizer_args)
+                    inputs = inputs.to(self.device)
+
+                    translated_part = self.generate_translation(
+                        inputs, self.config.lang_config.tgt_nllb_lang_code
+                    )
+
+                    translated_parts.append(translated_part.strip())
+
+                translated_text = " ".join(translated_parts)
             else:
                 inputs = tokens.to(self.device)
                 translated_text = self.generate_translation(
                     inputs, self.config.lang_config.tgt_nllb_lang_code
                 )
 
-            return translated_text
+            return translated_text.strip()
 
         return translate
