@@ -57,20 +57,8 @@ class TranslationPipeline:
             Path(existing_translated_file) if existing_translated_file else None
         )
 
-        model = None
-        tokenizer = None
-
-        try:
-            if not os.path.exists(original_ini_file_path):
-                self.logger.error(
-                    f"Source file {original_ini_file_path} does not exist"
-                )
-                raise FileNotFoundError(
-                    f"Source file {original_ini_file_path} does not exist"
-                )
-
-            # 1. Copying original `.ini` file
-            self.file_utils.copy_files(original_ini_file_path, translation_src_dir)
+            # 1. Copying input `.ini` file
+            self.file_utils.copy_files(input_ini_file_path, translation_src_dir)
 
             # 2. Initialize model
             model = self.model_initializer.initialize(

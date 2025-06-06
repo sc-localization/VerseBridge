@@ -17,7 +17,7 @@ class TranslationConfig:
 
     translation_src_dir: Path = field(init=False)
     translation_dest_dir: Path = field(init=False)
-    original_ini_file_path: Path = field(init=False)
+    input_ini_file_path: Path = field(init=False)
     buffer_size: int = 50
 
     exclude_keys: ExcludeKeysType = field(

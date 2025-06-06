@@ -7,7 +7,7 @@ from src.type_defs import IniFilePathsType, JsonFilePathsType
 
 @dataclass
 class PathConfig:
-    input_file_path: str | None = None
+    input_ini_file: str | None = None
     original_ini_file: str = "global_original.ini"
     pre_translated_ini_file_for_training: str = "global_pre_translated.ini"
 
@@ -16,7 +16,8 @@ class PathConfig:
     models_dir: Path = field(init=False)
     translation_dir: Path = field(init=False)
     logging_dir: Path = field(init=False)
-    ini_files: IniFilePathsType = field(init=False)
+    input_ini_file_path: Path = field(init=False)
+    ini_files_for_training: IniFilePathsType = field(init=False)
     json_files: JsonFilePathsType = field(init=False)
 
     def __post_init__(self) -> None:
@@ -29,12 +30,13 @@ class PathConfig:
 
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
-        self.ini_files = IniFilePathsType(
-            original=(
-                Path(self.input_file_path)
-                if self.input_file_path
-                else self.data_dir / self.original_ini_file
-            ),
+        if self.input_ini_file:
+            self.input_ini_file_path = Path(self.input_ini_file)
+        else:
+            self.input_ini_file_path = self.data_dir / self.original_ini_file
+
+        self.ini_files_for_training = IniFilePathsType(
+            original=self.data_dir / self.original_ini_file,
             translated=self.data_dir / self.pre_translated_ini_file_for_training,
         )
 

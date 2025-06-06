@@ -17,11 +17,11 @@ class ConfigManager:
         self,
         src_lang: LangCode = LangCode.EN,
         tgt_lang: LangCode = LangCode.RU,
-        input_file_path: Optional[str] = None,
+        input_ini_file: Optional[str] = None,
     ):
         self.dataset_config = DatasetConfig()
         self.generation_config = GenerationConfigParams()
-        self.path_config = PathConfig(input_file_path)
+        self.path_config = PathConfig(input_ini_file)
         self.lang_config = LanguageConfig(src_lang, tgt_lang)
         self.lora_config = LoraConfig()
         self.logging_config = LoggingConfig()
