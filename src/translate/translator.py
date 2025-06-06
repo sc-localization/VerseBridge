@@ -74,7 +74,6 @@ class Translator:
             )
 
         def translate(text: INIFIleValueType) -> TranslatedIniValueType:
-            print(text)
             self.tokenizer.src_lang = self.config.lang_config.src_nllb_lang_code
             self.tokenizer.tgt_lang = self.config.lang_config.tgt_nllb_lang_code
 
