@@ -37,9 +37,8 @@ LangMapType = Dict[LangCode, MappedCode]
 
 
 class IniFilePathsType(TypedDict):
-    source: Path  # Path to the input INI file for translation
+    original: Path  # Path to the source INI file for model training
     translated: Path  # Path to the pre-translated INI file for training
-    training_source: Path  # Path to the source INI file for model training
 
 
 class JsonFilePathsType(TypedDict):

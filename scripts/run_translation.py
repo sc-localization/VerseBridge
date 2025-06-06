@@ -90,8 +90,8 @@ def parse_args() -> argparse.Namespace:
         )
 
     # Validate file paths
-    if args.input_file_path and not Path(args.input_file_path).is_file():
-        parser.error(f"Input file {args.input_file_path} does not exist")
+    if args.input_file and not Path(args.input_file).is_file():
+        parser.error(f"Input file {args.input_file} does not exist")
 
     if (
         args.existing_translated_file
@@ -117,7 +117,7 @@ def main():
     config_manager = ConfigManager(
         src_lang=args.src_lang,
         tgt_lang=args.tgt_lang,
-        input_ini_file=args.input_ini_file,
+        input_file=args.input_file,
     )
 
     logger = initialize_logger(config_manager)
