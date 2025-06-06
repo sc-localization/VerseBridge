@@ -15,7 +15,7 @@ class TextProcessor:
     def __init__(self, protected_patterns: ProtectedPatternsType):
         self.pattern = re.compile("|".join(protected_patterns))
 
-    def protect_placeholders(
+    def _protect_placeholders(
         self, text: INIFIleValueType
     ) -> Tuple[INIFIleValueType, PlaceholdersType]:
         """
@@ -41,7 +41,7 @@ class TextProcessor:
 
         return modified_text, placeholders
 
-    def restore_placeholders(
+    def _restore_placeholders(
         self, translated_text: TranslatedIniValueType, placeholders: PlaceholdersType
     ) -> TranslatedIniValueType:
         """
@@ -106,7 +106,7 @@ class TextProcessor:
         if not text:
             return text
 
-        modified_text, placeholders = self.protect_placeholders(text)
+        modified_text, placeholders = self._protect_placeholders(text)
         translated_text = translator(modified_text)
 
-        return self.restore_placeholders(translated_text, placeholders)
+        return self._restore_placeholders(translated_text, placeholders)
