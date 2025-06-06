@@ -171,19 +171,19 @@ uv run -m scripts.run_translation --src-lang en --tgt-lang ru --translated_file_
 - translate INI file from custom directory:
 
 ```sh
-uv run -m scripts.run_translation --input-file-path data/global_original_test.ini
+uv run -m scripts.run_translation --input-file data/global_original_test.ini
 ```
 
 - re-translate an existing translated INI file:
 
 ```sh
-uv run -m scripts.run_translation --input-file-path data/global_original_test.ini --existing-translated-file data/global_original_exist.ini
+uv run -m scripts.run_translation --input-file data/global_original_test.ini --existing-translated-file data/global_original_exist.ini
 ```
 
 - re-translate an existing translated INI file with priority (if translated files already exist in the destination directory `translation_results`, they will be replaced with lines from `existing-translated-file`):
 
 ```sh
-uv run -m scripts.run_translation --input-file-path data/global_original_test.ini --existing-translated-file data/global_original_exist.ini --translation-priority existing
+uv run -m scripts.run_translation --input-file data/global_original_test.ini --existing-translated-file data/global_original_exist.ini
 ```
 
 - use a fine tuned model for translation:
