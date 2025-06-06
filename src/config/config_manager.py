@@ -5,7 +5,7 @@ from .language import LanguageConfig
 from .logging import LoggingConfig
 from .lora import LoraConfig
 from .models import ModelConfig
-from .paths import PathConfig
+from .paths import TranslationPathConfig, TrainingPathConfig
 from .training import TrainingConfig
 from .translation import TranslationConfig
 
@@ -21,10 +21,15 @@ class ConfigManager:
     ):
         self.dataset_config = DatasetConfig()
         self.generation_config = GenerationConfigParams()
-        self.path_config = PathConfig(input_ini_file)
+        self.translation_path_config = TranslationPathConfig(input_ini_file)
+        self.training_path_config = TrainingPathConfig()
         self.lang_config = LanguageConfig(src_lang, tgt_lang)
         self.lora_config = LoraConfig()
         self.logging_config = LoggingConfig()
-        self.model_config = ModelConfig(self.path_config)
-        self.training_config = TrainingConfig(str(self.path_config.logging_dir))
-        self.translation_config = TranslationConfig(self.path_config, self.lang_config)
+        self.model_config = ModelConfig(self.training_path_config)
+        self.training_config = TrainingConfig(
+            str(self.training_path_config.logging_dir)
+        )
+        self.translation_config = TranslationConfig(
+            self.translation_path_config, self.lang_config
+        )
