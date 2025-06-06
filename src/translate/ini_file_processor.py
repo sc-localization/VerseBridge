@@ -300,7 +300,6 @@ class IniFileProcessor:
                 sorted(processed_lines.items()),
                 desc="Translating INI",
                 total=len(processed_lines),
-                unit="lines",
             ):
                 if key in obsolete_keys:
                     continue
