@@ -4,20 +4,18 @@ from pathlib import Path
 from src.type_defs import (
     ExcludeKeysType,
     ProtectedPatternsType,
-    # TranslationPriorityType,
 )
 from .language import LanguageConfig
-from .paths import PathConfig
+from .paths import TranslationPathConfig
 
 
 @dataclass
 class TranslationConfig:
-    path_config: PathConfig
+    path_config: TranslationPathConfig
     lang_config: LanguageConfig
 
     translation_src_dir: Path = field(init=False)
     translation_dest_dir: Path = field(init=False)
-    input_ini_file_path: Path = field(init=False)
     buffer_size: int = 50
 
     exclude_keys: ExcludeKeysType = field(
@@ -56,5 +54,3 @@ class TranslationConfig:
         self.translation_dest_dir = (
             self.path_config.translation_dir / self.lang_config.tgt_lang.value
         )
-
-        self.input_ini_file_path = self.path_config.input_ini_file_path
