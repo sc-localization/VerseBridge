@@ -110,7 +110,7 @@ def main():
         pipeline = TrainingPipeline(config_manager, logger)
         pipeline.run_training(model_cli_path=args.model_path, with_lora=args.with_lora)
     except Exception as e:
-        logger.error(f"An error occurred: {str(e)}")
+        logger.error(f"An error occurred during training: {str(e)}")
         raise
 
 

@@ -49,13 +49,19 @@ class TranslationPipeline:
         self.logger.info("🚀 Starting translation pipeline")
         self.memory_manager.clear()
 
-        original_ini_file_path = self.config.translation_config.original_ini_file_path
-        translation_src_dir = self.config.translation_config.translation_src_dir
-        translation_dest_dir = self.config.translation_config.translation_dest_dir
+        model = None
+        tokenizer = None
 
-        existing_translated_ini_file_path = (
-            Path(existing_translated_file) if existing_translated_file else None
-        )
+        try:
+            self.config.path_config.check_input_ini_file_exists()
+
+            input_ini_file_path = self.config.translation_config.input_ini_file_path
+            translation_src_dir = self.config.translation_config.translation_src_dir
+            translation_dest_dir = self.config.translation_config.translation_dest_dir
+
+            existing_translated_ini_file_path = (
+                Path(existing_translated_file) if existing_translated_file else None
+            )
 
             # 1. Copying input `.ini` file
             self.file_utils.copy_files(input_ini_file_path, translation_src_dir)

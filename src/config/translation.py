@@ -57,4 +57,4 @@ class TranslationConfig:
             self.path_config.translation_dir / self.lang_config.tgt_lang.value
         )
 
-        self.original_ini_file_path = self.path_config.ini_files["original"]
+        self.input_ini_file_path = self.path_config.input_ini_file_path

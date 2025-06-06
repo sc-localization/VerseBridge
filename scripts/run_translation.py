@@ -69,7 +69,6 @@ def parse_args() -> argparse.Namespace:
         "--input-file",
         type=str,
         default=None,
-        required=True,
         metavar="",
         help=help_strings["input_file_help"],
     )
@@ -123,15 +122,18 @@ def main():
 
     logger = initialize_logger(config_manager)
 
-    # Initialize and run the translation pipeline
-    pipeline = TranslationPipeline(config_manager, logger)
+    try:
+        # Initialize and run the translation pipeline
+        pipeline = TranslationPipeline(config_manager, logger)
 
-    pipeline.run_translation(
-        translated_file_name=args.translated_file_name,
-        model_cli_path=args.model_path,
-        existing_translated_file=args.existing_translated_file,
-    )
-
+        pipeline.run_translation(
+            translated_file_name=args.translated_file_name,
+            model_cli_path=args.model_path,
+            existing_translated_file=args.existing_translated_file,
+        )
+    except Exception as e:
+            logger.error(f"An error occurred during translation: {e}")
+            raise
 
 if __name__ == "__main__":
     main()
