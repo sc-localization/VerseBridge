@@ -50,11 +50,19 @@ class PathConfig:
     def data_files_exist(self) -> bool:
         return self.json_files["train"].exists() and self.json_files["test"].exists()
 
-    def check_ini_files_exist(self) -> None:
-        ini_values: List[Path] = list(cast(Dict[str, Path], self.ini_files).values())
+    def check_ini_files_for_training_exist(self) -> None:
+        ini_values: List[Path] = list(
+            cast(Dict[str, Path], self.ini_files_for_training).values()
+        )
         missing_files: List[Path] = [path for path in ini_values if not path.exists()]
 
         if missing_files:
             raise FileNotFoundError(
                 f"The following necessary INI files are missing: {', '.join(map(str, missing_files))}"
+            )
+        
+    def check_input_ini_file_exists(self) -> None:
+        if not self.input_ini_file_path.exists():
+            raise FileNotFoundError(
+                f"The input INI file does not exist: {self.input_ini_file_path}"
             )
