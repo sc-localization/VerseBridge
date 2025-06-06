@@ -33,7 +33,7 @@ class TranslationPipeline:
         self.memory_manager = MemoryManager(self.logger)
         self.tokenizer_initializer = TokenizerInitializer(self.config, self.logger)
         self.text_processor = TextProcessor(
-            self.config.translation_config.protected_patterns
+            self.config.translation_config.protected_patterns, self.logger
         )
         self.model_initializer = ModelInitializer(self.config, self.logger)
         self.ini_file_processor = IniFileProcessor(
