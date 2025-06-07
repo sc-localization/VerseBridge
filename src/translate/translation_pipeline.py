@@ -17,6 +17,10 @@ from .text_processor import TextProcessor
 from .translator import Translator
 from .ini_file_processor import IniFileProcessor
 
+torch.cuda.empty_cache()
+torch.cuda.reset_peak_memory_stats()
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 
 class TranslationPipeline:
     def __init__(
@@ -29,7 +33,7 @@ class TranslationPipeline:
         self.memory_manager = MemoryManager(self.logger)
         self.tokenizer_initializer = TokenizerInitializer(self.config, self.logger)
         self.text_processor = TextProcessor(
-            self.config.translation_config.protected_patterns
+            self.config.translation_config.protected_patterns, self.logger
         )
         self.model_initializer = ModelInitializer(self.config, self.logger)
         self.ini_file_processor = IniFileProcessor(
@@ -45,21 +49,22 @@ class TranslationPipeline:
         self.logger.info("🚀 Starting translation pipeline")
         self.memory_manager.clear()
 
-        original_ini_file_path = self.config.translation_config.original_ini_file_path
-        translation_src_dir = self.config.translation_config.translation_src_dir
-        translation_dest_dir = self.config.translation_config.translation_dest_dir
+        model = None
+        tokenizer = None
 
         try:
-            if not os.path.exists(original_ini_file_path):
-                self.logger.error(
-                    f"Source file {original_ini_file_path} does not exist"
-                )
-                raise FileNotFoundError(
-                    f"Source file {original_ini_file_path} does not exist"
-                )
+            self.config.translation_path_config.check_input_file_exists()
 
-            # 1. Copying original `.ini` file
-            self.file_utils.copy_files(original_ini_file_path, translation_src_dir)
+            input_file_path = self.config.translation_path_config.input_file_path
+            translation_src_dir = self.config.translation_config.translation_src_dir
+            translation_dest_dir = self.config.translation_config.translation_dest_dir
+
+            existing_translated_file_path = (
+                Path(existing_translated_file) if existing_translated_file else None
+            )
+
+            # 1. Copying input `.ini` file
+            self.file_utils.copy_files(input_file_path, translation_src_dir)
 
             # 2. Initialize model
             model = self.model_initializer.initialize(
@@ -90,24 +95,35 @@ class TranslationPipeline:
 
             # 7. Translating INI files
             for file_name in ini_files:
-                input_translation_file = translation_src_dir / file_name
+                translation_input_file = translation_src_dir / file_name
 
-                output_translation_file = translation_dest_dir / (
+                translation_result_file = translation_dest_dir / (
                     translated_file_name or file_name
                 )
 
                 self.ini_file_processor.translate_file(
-                    input_translation_file,
-                    output_translation_file,
+                    translation_input_file,
+                    translation_result_file,
                     translator,
-                    existing_translated_file=(
-                        Path(existing_translated_file)
-                        if existing_translated_file
-                        else None
-                    ),
+                    existing_translated_file=existing_translated_file_path,
                 )
 
             self.logger.info("✅ Translation pipeline completed successfully")
+        except KeyboardInterrupt:
+            self.logger.warning("Translation interrupted by user")
+            raise
         except Exception as e:
             self.logger.error(f"❌ Caught error at translation pipeline: {str(e)}")
             raise
+        finally:
+            self.logger.debug("Releasing model and tokenizer resources")
+
+            if model is not None:
+                model = None
+                del model
+
+            if tokenizer is not None:
+                tokenizer = None
+                del tokenizer
+
+            self.memory_manager.clear()

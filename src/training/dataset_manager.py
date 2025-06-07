@@ -21,8 +21,8 @@ class DatasetManager:
             DatasetDict: A dictionary containing the train and test datasets.
         """
         data_files = {
-            "train": str(self.config.path_config.json_files["train"]),
-            "test": str(self.config.path_config.json_files["test"]),
+            "train": str(self.config.training_path_config.json_files["train"]),
+            "test": str(self.config.training_path_config.json_files["test"]),
         }
 
         dataset: DatasetDict = load_dataset("json", data_files=data_files)  # type: ignore

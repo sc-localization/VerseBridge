@@ -13,7 +13,7 @@ from src.type_defs import (
 
 
 def needs_preprocessing(config: ConfigManager, logger: LoggerType) -> bool:
-    data_files_exist = config.path_config.data_files_exist()
+    data_files_exist = config.training_path_config.data_files_exist()
 
     if data_files_exist:
         logger.info("🔍 Train and test files found, skipping preprocessing")
@@ -85,7 +85,7 @@ def initialize_logger(config: ConfigManager) -> LoggerType:
     return AppLogger(
         name,
         log_file,
-        log_dir=config.path_config.logging_dir,
+        log_dir=config.base_path_config.logging_dir,
     ).get_logger
 
 
@@ -110,7 +110,7 @@ def main():
         pipeline = TrainingPipeline(config_manager, logger)
         pipeline.run_training(model_cli_path=args.model_path, with_lora=args.with_lora)
     except Exception as e:
-        logger.error(f"An error occurred: {str(e)}")
+        logger.error(f"An error occurred during training: {str(e)}")
         raise
 
 
