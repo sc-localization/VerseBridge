@@ -37,8 +37,8 @@ LangMapType = Dict[LangCode, MappedCode]
 
 
 class IniFilePathsType(TypedDict):
-    original: Path
-    translated: Path
+    original: Path  # Path to the source INI file for model training
+    translated: Path  # Path to the pre-translated INI file for training
 
 
 class JsonFilePathsType(TypedDict):
@@ -53,11 +53,7 @@ class LogConfigType(NamedTuple):
     logger_name: str
 
 
-class GenerationConfigType(TypedDict):
-    num_beams: int
-    top_k: int
-    top_p: float
-    do_sample: bool
+GenerationConfigType: TypeAlias = Dict[str, Any]
 
 
 class TokenizerConfigType(TypedDict):
@@ -119,6 +115,11 @@ PlaceholdersType: TypeAlias = Dict[str, str]
 INIFIleKeyType: TypeAlias = str
 INIFIleValueType: TypeAlias = str
 KeyValuePairType: TypeAlias = Tuple[INIFIleKeyType, INIFIleValueType]
+IniLineType: TypeAlias = Literal[f"{INIFIleKeyType}={INIFIleValueType}"]
+TranslatedIniValueType: TypeAlias = INIFIleValueType
+TranslatedIniLineType: TypeAlias = Literal[
+    f"{INIFIleKeyType}={INIFIleValueType|TranslatedIniValueType}"
+]
 
 INIDataType: TypeAlias = Dict[INIFIleKeyType, INIFIleValueType]
 
@@ -153,7 +154,7 @@ LastCheckpointPathType: TypeAlias = Optional[Path]
 InitializedModelType = PeftModel | PeftMixedModel | PreTrainedModel
 TranslatedFileNameType = Optional[str]
 
-BufferType: TypeAlias = List[str]
+BufferType: TypeAlias = List[TranslatedIniLineType]
 
 TranslatorCallableType: TypeAlias = Callable[[str], str]
 
@@ -202,25 +203,51 @@ LoraTargetModulesType: TypeAlias = Optional[Union[list[str], str]]
 def is_json_help_strings_dict_type(data: Any) -> TypeGuard[JSONHelpStringsDictType]:
     if not isinstance(data, dict):
         return False
+
     if "ru" not in data or "en" not in data:
         return False
+
     if not isinstance(data["ru"], dict) or not isinstance(data["en"], dict):
         return False
+
     if not all(isinstance(v, str) for v in data["ru"].values()):
         return False
+
     if not all(isinstance(v, str) for v in data["en"].values()):
         return False
+
     return True
 
 
 def is_json_data_list_type(data: Any) -> TypeGuard[JSONDataListType]:
     if not isinstance(data, list):
         return False
+
     for item in data:
         if not isinstance(item, dict):
             return False
+
         if "original" not in item or "translated" not in item:
             return False
-        if not isinstance(item["original"], str) or not isinstance(item["translated"], str):
+
+        if not isinstance(item["original"], str) or not isinstance(
+            item["translated"], str
+        ):
             return False
+
+    return True
+
+
+def is_ini_file_line(line: Any) -> TypeGuard[IniLineType]:
+    if not isinstance(line, str):
+        return False
+
+    if "=" not in line:
+        return False
+
+    key, _ = line.split("=", 1)
+
+    if not key:  # line must be with empty value
+        return False
+
     return True

@@ -162,8 +162,6 @@ uv run -m scripts.run_training
 
 **2. Перевод (run_translation.py)**
 
-**Примеры:**
-
 - перевести все INI-файлы в исходной директории:
 
 ```sh
@@ -173,13 +171,19 @@ uv run -m scripts.run_translation --src-lang en --tgt-lang ru --translated_file_
 - перевести INI-файл из пользовательской директории:
 
 ```sh
-uv run -m scripts.run_translation --input-file-path data/global_original_test.ini
+uv run -m scripts.run_translation --input-file data/global_original_test.ini
 ```
 
 - до-перевести существующий переведенный INI-файл:
 
 ```sh
-uv run -m scripts.run_translation --input-file-path data/global_original_test.ini --existing-translated-file data/global_original_exist.ini
+uv run -m scripts.run_translation --input-file data/global_original_test.ini --existing-translated-file data/global_original_exist.ini
+```
+
+- до-перевести существующий переведенный INI-файл с приоритетом (если файлы с переводом уже существуют в целевой директории `translation_results`, они будут заменены строками из `existing-translated-file`):
+
+```sh
+uv run -m scripts.run_translation --input-file data/global_original_test.ini --existing-translated-file data/global_original_exist.ini --translation-priority existing
 ```
 
 - использовать дообученную модель для перевода:

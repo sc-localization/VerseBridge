@@ -14,8 +14,12 @@ def main():
     config_manager = ConfigManager()
     logger = initialize_logger(config_manager)
 
-    pipeline = PreprocessPipeline(config_manager, logger)
-    pipeline.run_preprocess()
+    try:
+        pipeline = PreprocessPipeline(config_manager, logger)
+        pipeline.run_preprocess()
+    except Exception as e:
+        logger.error(f"An error occurred during preprocessing: {e}")
+        raise
 
 
 if __name__ == "__main__":

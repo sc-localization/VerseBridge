@@ -66,11 +66,11 @@ def parse_args() -> argparse.Namespace:
         help=help_strings["translated_file_name_help"],
     )
     path_group.add_argument(
-        "--input-file-path",
+        "--input-file",
         type=str,
         default=None,
         metavar="",
-        help=help_strings["input_path_help"],
+        help=help_strings["input_file_help"],
     )
     path_group.add_argument(
         "--existing-translated-file",
@@ -90,8 +90,8 @@ def parse_args() -> argparse.Namespace:
         )
 
     # Validate file paths
-    if args.input_file_path and not Path(args.input_file_path).is_file():
-        parser.error(f"Input file {args.input_file_path} does not exist")
+    if args.input_file and not Path(args.input_file).is_file():
+        parser.error(f"Input file {args.input_file} does not exist")
 
     if (
         args.existing_translated_file
@@ -117,20 +117,23 @@ def main():
     config_manager = ConfigManager(
         src_lang=args.src_lang,
         tgt_lang=args.tgt_lang,
-        input_file_path=args.input_file_path,
+        input_file=args.input_file,
     )
 
     logger = initialize_logger(config_manager)
 
-    # Initialize and run the translation pipeline
-    pipeline = TranslationPipeline(config_manager, logger)
+    try:
+        # Initialize and run the translation pipeline
+        pipeline = TranslationPipeline(config_manager, logger)
 
-    pipeline.run_translation(
-        translated_file_name=args.translated_file_name,
-        model_cli_path=args.model_path,
-        existing_translated_file=args.existing_translated_file,
-    )
-
+        pipeline.run_translation(
+            translated_file_name=args.translated_file_name,
+            model_cli_path=args.model_path,
+            existing_translated_file=args.existing_translated_file,
+        )
+    except Exception as e:
+            logger.error(f"An error occurred during translation: {e}")
+            raise
 
 if __name__ == "__main__":
     main()

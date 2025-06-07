@@ -135,6 +135,9 @@ class TrainingPipeline:
     ) -> None:
         self.logger.info("🚀 Starting training pipeline")
 
+        model = None
+        tokenizer = None
+
         try:
             self.memory_manager.clear()
 
@@ -192,6 +195,21 @@ class TrainingPipeline:
             self.memory_manager.clear()
 
             self.logger.info("✅ Training pipeline completed successfully")
+        except KeyboardInterrupt:
+            self.logger.warning("Training interrupted by user")
+            raise
         except Exception as e:
             self.logger.error(f"❌ Caught error at training pipeline: {str(e)}")
             raise
+        finally:
+            self.logger.debug("Releasing model and tokenizer resources")
+
+            if model is not None:
+                model = None
+                del model
+
+            if tokenizer is not None:
+                tokenizer = None
+                del tokenizer
+
+            self.memory_manager.clear()
