@@ -18,6 +18,13 @@ class TranslationConfig:
     translation_dest_dir: Path = field(init=False)
     buffer_size: int = 50
 
+    min_tokens: int = 16
+    length_scale_factors = {
+        ("en", "ru"): 1.5,  # English → Russian: text is usually longer. Or you can get it from ~ len(translated_tokens) / len(source_tokens)
+        # Add other pairs as needed and select the coefficient based on the translation quality obtained
+    }
+    token_reserve: int = 10
+
     exclude_keys: ExcludeKeysType = field(
         default_factory=lambda: (
             "HUD_Visor_DataDownload_DataCloseup_01,P",
@@ -45,6 +52,10 @@ class TranslationConfig:
             r"(<\s*[^/][^>]*\s*>)",  # All words in angle brackets <...>
         )
     )
+
+    @classmethod
+    def get_scale_factor(cls, src_lang: str, tgt_lang: str):
+        return cls.length_scale_factors.get((src_lang, tgt_lang), 1.0)
 
     def __post_init__(self):
         self.translation_src_dir = (
