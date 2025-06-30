@@ -28,7 +28,18 @@ Is a **text translation** tool for game use, based on the [NLLB-200 model](https
 
 ## Installation
 
-> Requires Python 3.10 and NVIDIA GPU with CUDA support for optimal performance.
+> Requires Python 3.10 and NVIDIA GPU with **CUDA 12.8** support. 
+
+**Note:** CUDA 12.8 is required for pytorch compatibility
+
+To install CUDA on WSL Ubuntu 22.04 follow the [instructions](https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&Distribution=WSL-Ubuntu&target_version=2.0&target_type=deb_network) or run:
+
+```sh
+wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+sudo apt update
+sudo apt -y install cuda-toolkit-12-8
+``` 
 
 1. Inslall UV:
    ```sh

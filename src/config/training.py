@@ -36,8 +36,8 @@ class TrainingConfig:
     lr_scheduler_type: Scheduler = Scheduler.linear
 
     # === Batching and gradients ===
-    per_device_train_batch_size: int = 24
-    per_device_eval_batch_size: int = 24
+    per_device_train_batch_size: int = 16
+    per_device_eval_batch_size: int = 16
     gradient_accumulation_steps: int = 4
     eval_accumulation_steps: int = 4
 
