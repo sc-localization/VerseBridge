@@ -92,7 +92,10 @@ def initialize_logger(config: ConfigManager) -> LoggerType:
 def main():
     args = parse_args()
 
-    config_manager = ConfigManager(src_lang=args.src_lang, tgt_lang=args.tgt_lang)
+    config_manager = ConfigManager(
+        src_lang=args.src_lang,
+        tgt_lang=args.tgt_lang,
+    )
     logger = initialize_logger(config_manager)
 
     try:
@@ -106,11 +109,13 @@ def main():
         if not torch.cuda.is_available():
             logger.warning("⚠️ No GPU detected, training will be slow!")
 
+        logger.debug(f"CUDA version: {torch.version.cuda}")  # type: ignore
+
         # Step 3: Start training
         pipeline = TrainingPipeline(config_manager, logger)
         pipeline.run_training(model_cli_path=args.model_path, with_lora=args.with_lora)
     except Exception as e:
-        logger.error(f"An error occurred during training: {str(e)}")
+        logger.error(f"🛑 An error occurred during training: {str(e)}")
         raise
 
 

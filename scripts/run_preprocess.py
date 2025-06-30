@@ -18,7 +18,7 @@ def main():
         pipeline = PreprocessPipeline(config_manager, logger)
         pipeline.run_preprocess()
     except Exception as e:
-        logger.error(f"An error occurred during preprocessing: {e}")
+        logger.error(f"🛑 An error occurred during preprocessing: {e}")
         raise
 
 
