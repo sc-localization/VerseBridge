@@ -1,36 +1,57 @@
 ## How to Contribute
 
-If you would like to contribute to the RSI Translator project, please follow these steps:
+Thank you for your interest in contributing to the Star Citizen Translator project! To help you get started, please follow these steps:
 
-1. Fork the repository:
+1. **Fork and Clone the Repository**
+
+   First, create your own copy of the repository by clicking the "Fork" button on GitHub. Then, clone your fork to your local machine:
 
    ```sh
-   git clone https://github.com/sc-localization/VerseBridge.git
+   git clone https://github.com/<your-username>/VerseBridge.git
    cd VerseBridge
    ```
 
-2. Create a new branch for your feature or bugfix:
+2. **Create a New Branch**
+
+   Create a new branch for your feature or bugfix. Use a descriptive name for your branch:
 
    ```sh
-   git checkout -b feature-name
+   git checkout -b your-feature-name
    ```
 
-3. Install the required dependencies:
+3. **Install Dependencies**
+
+   Install the required Python dependencies using [uv](https://github.com/astral-sh/uv). Make sure you have Python and uv installed:
 
    ```sh
-   pip install -r requirements.tx
+   uv sync
    ```
 
-4. Make your changes and commit them:
+4. **Make Your Changes**
 
-   ```bash
-   git commit -m "Description of your changes"
+   Implement your feature or fix the bug. Be sure to follow the project's coding style and add tests if necessary.
+
+5. **Commit Your Changes**
+
+   Stage and commit your changes with a clear and descriptive commit message:
+
+   ```sh
+   git add .
+   git commit -m "Describe your changes here"
    ```
 
-5. Push your changes to your fork:
+6. **Push to Your Fork**
 
-   ```bash
-   git push origin feature-name
+   Push your branch to your forked repository on GitHub:
+
+   ```sh
+   git push origin your-feature-name
    ```
 
-6. Submit a PR with a detailed description and link to related issues.
+7. **Open a Pull Request**
+
+   Go to the original repository and open a Pull Request (PR) from your branch. Include a detailed description of your changes and reference any related issues.
+
+---
+
+If you have any questions or need help, feel free to open an issue or ask in the discussions section. We appreciate your contributions!
