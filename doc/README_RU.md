@@ -28,7 +28,18 @@
 
 ## Установка
 
-> Требуется Python 3.10 и NVIDIA GPU с поддержкой CUDA для оптимальной работы.
+> Требуется Python 3.10 и NVIDIA GPU с поддержкой **CUDA 12.8**.
+
+**Примечание:** CUDA 12.8 необходим для совместимости с pytorch
+
+Для установки CUDA на WSL Ubuntu 22.04 выполните следующие шаги:
+
+```sh
+wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+sudo apt update
+sudo apt -y install cuda-toolkit-12-8
+```
 
 1. Установите UV:
    ```sh
