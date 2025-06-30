@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+import torch
 
 from src.config import ConfigManager
 from src.utils import AppLogger, CustomHelpFormatter, SystemUtils, HelpUtils
@@ -123,17 +124,23 @@ def main():
     logger = initialize_logger(config_manager)
 
     try:
-        # Initialize and run the translation pipeline
-        pipeline = TranslationPipeline(config_manager, logger)
+        # Step 1: Check for GPU availability
+        if not torch.cuda.is_available():
+            logger.warning("⚠️ No GPU detected, translation will be slow!")
 
+        logger.debug(f"CUDA version: {torch.version.cuda}")  # type: ignore
+
+        # Step 2: Start translation
+        pipeline = TranslationPipeline(config_manager, logger)
         pipeline.run_translation(
             translated_file_name=args.translated_file_name,
             model_cli_path=args.model_path,
             existing_translated_file=args.existing_translated_file,
         )
     except Exception as e:
-            logger.error(f"An error occurred during translation: {e}")
-            raise
+        logger.error(f"🛑 An error occurred during translation: {e}")
+        raise
+
 
 if __name__ == "__main__":
     main()
