@@ -7,7 +7,6 @@ from src.type_defs import (
     ExcludeKeysType,
     ArgLoggerType,
     INIDataType,
-    JSONDataListType,
     LoadedJSONType,
     KeyValuePairType,
     IniLineType,
@@ -184,7 +183,7 @@ class FileUtils:
 
     def save_json(
         self,
-        data: JSONDataListType,
+        data: LoadedJSONType,
         output_file: Path,
     ) -> None:
         """

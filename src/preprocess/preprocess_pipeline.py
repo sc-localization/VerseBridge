@@ -2,7 +2,7 @@ from typing import Optional
 
 from src.config import ConfigManager
 from src.utils import AppLogger, FileUtils, TokenizerInitializer
-from src.type_defs import ArgLoggerType, is_json_data_list_type
+from src.type_defs import ArgLoggerType, is_json_data_tranlation_list_type
 from .ini_to_json_converter import IniConverter
 from .json_cleaner import JsonCleaner
 from .data_splitter import DataSplitter
@@ -64,7 +64,7 @@ class PreprocessPipeline:
 
             loaded_json_data = self.file_utils.load_json(data_json_path)
 
-            if not is_json_data_list_type(loaded_json_data):
+            if not is_json_data_tranlation_list_type(loaded_json_data):
                 raise ValueError(
                     "JSON data must contain a list of dictionaries with 'original' and 'translated' keys"
                 )
@@ -77,7 +77,7 @@ class PreprocessPipeline:
 
             loaded_cleaned_data = self.file_utils.load_json(cleaned_json_path)
 
-            if not is_json_data_list_type(loaded_cleaned_data):
+            if not is_json_data_tranlation_list_type(loaded_cleaned_data):
                 raise ValueError(
                     "JSON data must contain a list of dictionaries with 'original' and 'translated' keys"
                 )
