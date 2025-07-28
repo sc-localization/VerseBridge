@@ -2,6 +2,7 @@ import logging
 import torch
 from peft import PeftModel, get_peft_model, PeftMixedModel
 from transformers import AutoModelForSeq2SeqLM, PreTrainedModel
+
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -90,12 +91,18 @@ class ModelInitializer:
             Tuple[Path, Path]: A tuple containing the output path for the model results and
                 the output path for the model checkpoints.
         """
+        src_lang = self.config.lang_config.src_lang.value
+        tgt_lang = self.config.lang_config.tgt_lang.value
+        lang_pair = f"{src_lang}-{tgt_lang}"
+
         if model_path_or_name and "checkpoint-" in model_path_or_name:
             # For checkpoints, use the parent directory
             model_dir = Path(model_path_or_name).parent.parent
             model_type = "checkpoint"
         else:
-            model_type = "lora" if use_lora else "base_model"
+            model_type = (
+                f"lora_model_{lang_pair}" if use_lora else f"base_model_{lang_pair}"
+            )
             model_dir = self.config.base_path_config.models_dir / model_type
 
         result_path = model_dir / "result"
@@ -145,7 +152,14 @@ class ModelInitializer:
                 self.logger.warning(
                     f"Invalid model directory {model_dir}, using base model paths"
                 )
-                model_dir = self.config.base_path_config.models_dir / "base_model"
+
+                src_lang = self.config.lang_config.src_lang.value
+                tgt_lang = self.config.lang_config.tgt_lang.value
+
+                model_dir = (
+                    self.config.base_path_config.models_dir
+                    / f"base_model_{src_lang}-{tgt_lang}"
+                )
 
             result_path = model_dir / "result"
             checkpoints_path = model_dir / "checkpoints"
