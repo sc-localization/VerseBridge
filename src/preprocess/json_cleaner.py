@@ -7,7 +7,7 @@ from transformers import PreTrainedTokenizerBase
 from src.utils import AppLogger
 from src.type_defs import (
     ProtectedPatternsType,
-    JSONDataListType,
+    JSONDataTranslationListType,
     ArgLoggerType,
     INIFIleValueType,
     CleanedINIFIleValueType,
@@ -205,7 +205,9 @@ class JsonCleaner:
 
         return False
 
-    def clean_json_data(self, data: JSONDataListType) -> JSONDataListType:
+    def clean_json_data(
+        self, data: JSONDataTranslationListType
+    ) -> JSONDataTranslationListType:
         """
         Cleans JSON data, removing duplicates, empty records, and incorrect texts.
 
@@ -216,7 +218,7 @@ class JsonCleaner:
             Cleaned data.
         """
         seen_pairs: Set[str] = set()
-        cleaned_data: JSONDataListType = []
+        cleaned_data: JSONDataTranslationListType = []
 
         for item in tqdm(data, desc="Cleaning data"):
             original_text: CleanedINIFIleValueType = self.clean_text(
@@ -272,7 +274,9 @@ class JsonCleaner:
                 continue
 
             seen_pairs.add(pair)
-            cleaned_data.append({"original": original_text, "translated": translated_text})
+            cleaned_data.append(
+                {"original": original_text, "translated": translated_text}
+            )
 
         self._log_cleaning_stats(len(cleaned_data))
 

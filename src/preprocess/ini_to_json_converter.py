@@ -6,7 +6,7 @@ from src.type_defs import (
     ExcludeKeysType,
     INIDataType,
     LoggerType,
-    JSONDataListType,
+    JSONDataTranslationListType,
     INIFIleValueType,
 )
 
@@ -28,7 +28,9 @@ class IniConverter:
         self.exclude_keys: ExcludeKeysType = exclude_keys
         self.file_utils: FileUtils = FileUtils(self.logger)
 
-    def create_json_data(self, original_ini: Path, translated_ini: Path) -> JSONDataListType:
+    def create_json_data(
+        self, original_ini: Path, translated_ini: Path
+    ) -> JSONDataTranslationListType:
         """
         Creates a list of dictionaries with original-translated pairs from two INI files.
 
@@ -39,7 +41,9 @@ class IniConverter:
         Returns:
             JSONDataListType: A list of dictionaries with {"original": str, "translated": str} pairs.
         """
-        self.logger.debug(f"Creating JSON data from {original_ini} and {translated_ini}")
+        self.logger.debug(
+            f"Creating JSON data from {original_ini} and {translated_ini}"
+        )
 
         original_data: INIDataType = self.file_utils.parse_ini_file(
             original_ini, self.exclude_keys
@@ -48,7 +52,7 @@ class IniConverter:
             translated_ini, self.exclude_keys
         )
 
-        results: JSONDataListType = []
+        results: JSONDataTranslationListType = []
 
         for key in original_data:
             original_value: INIFIleValueType | None = original_data.get(key)
@@ -65,7 +69,9 @@ class IniConverter:
                 )
 
             if original_value and translated_value:
-                results.append({"original": original_value, "translated": translated_value})
+                results.append(
+                    {"original": original_value, "translated": translated_value}
+                )
 
         self.logger.debug(f"Created {len(results)} original-translated pairs")
 
