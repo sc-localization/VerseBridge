@@ -131,15 +131,44 @@ class HelpStringsLangType(TypedDict):
     en: HelpStringsDictType
 
 
-class JSONDataType(TypedDict):
+class JSONDataTranslationType(TypedDict):
     original: INIFIleValueType
     translated: INIFIleValueType
 
 
-JSONHelpStringsDictType = HelpStringsLangType
-JSONDataListType: TypeAlias = List[JSONDataType]
+class EntityType(TypedDict):
+    start: str
+    end: str
+    label: str
 
-LoadedJSONType: TypeAlias = JSONHelpStringsDictType | JSONDataListType
+
+EntitiesType: TypeAlias = List[EntityType]
+
+
+class JSONDataNERType(TypedDict):
+    id: INIFIleKeyType
+    text: INIFIleValueType
+    entities: EntitiesType
+
+
+class JSONConvertedToBIOType(TypedDict):
+    id: INIFIleKeyType
+    tokens: List[str]
+    labels: List[str]
+
+
+JSONHelpStringsDictType = HelpStringsLangType
+JSONDataTranslationListType: TypeAlias = List[JSONDataTranslationType]
+JSONDataNERListType: TypeAlias = List[JSONDataNERType]
+JSONDataConvertedToBIOListType: TypeAlias = List[JSONConvertedToBIOType]
+
+
+LoadedJSONType: TypeAlias = (
+    JSONHelpStringsDictType
+    | JSONDataTranslationListType
+    | JSONDataNERListType
+    | JSONDataConvertedToBIOListType
+)
 
 CleanedINIFIleValueType: TypeAlias = INIFIleValueType
 
@@ -219,7 +248,9 @@ def is_json_help_strings_dict_type(data: Any) -> TypeGuard[JSONHelpStringsDictTy
     return True
 
 
-def is_json_data_list_type(data: Any) -> TypeGuard[JSONDataListType]:
+def is_json_data_tranlation_list_type(
+    data: Any,
+) -> TypeGuard[JSONDataTranslationListType]:
     if not isinstance(data, list):
         return False
 
@@ -234,6 +265,40 @@ def is_json_data_list_type(data: Any) -> TypeGuard[JSONDataListType]:
             item["translated"], str
         ):
             return False
+
+    return True
+
+
+def is_json_data_ner_list_type(data: Any) -> TypeGuard[JSONDataNERListType]:
+    if not isinstance(data, list):
+        return False
+
+    for item in data:
+        if not isinstance(item, dict):
+            return False
+
+        if "id" not in item or "text" not in item or "entities" not in item:
+            return False
+
+        if not isinstance(item["id"], str) or not isinstance(item["text"], str):
+            return False
+
+        if not isinstance(item["entities"], list):
+            return False
+
+        for entity in item["entities"]:
+            if not isinstance(entity, dict):
+                return False
+
+            if "start" not in entity or "end" not in entity or "label" not in entity:
+                return False
+
+            if not isinstance(entity["start"], int) or not isinstance(
+                entity["end"], int
+            ):
+                return False
+            if not isinstance(entity["label"], str):
+                return False
 
     return True
 
