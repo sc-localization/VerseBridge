@@ -1,39 +1,61 @@
 from typing import Optional, cast
-from transformers import AutoTokenizer, PreTrainedTokenizerBase
+from transformers import AutoTokenizer
 
 from src.config import ConfigManager
-from src.type_defs import LoggerType, MappedCode
+from src.type_defs import LoggerType, AppTaskType, InitlizedTokenizerType
 
 
 class TokenizerInitializer:
-    def __init__(self, config: ConfigManager, logger: LoggerType):
+    def __init__(
+        self,
+        config: ConfigManager,
+        logger: LoggerType,
+        task: AppTaskType = "translation",
+    ) -> None:
+        """
+        Initializes a new TokenizerInitializer instance.
+
+        Args:
+            config: The configuration.
+            logger: The logger.
+            mode: The mode ("translation" or "ner"). Defaults to "translation".
+        """
         self.config = config
         self.logger = logger
-        self.tokenizer: Optional[PreTrainedTokenizerBase] = None
+        self.task = task
 
-    def initialize(self) -> PreTrainedTokenizerBase:
+        self.tokenizer: Optional[InitlizedTokenizerType] = None
+
+    def initialize(self) -> InitlizedTokenizerType:
         """
         Initializes and returns a tokenizer.
         Always uses the same tokenizer with the base model.
 
         Returns:
-            PreTrainedTokenizerBase: A tokenizer instance.
+            InitlizedTokenizerType: A tokenizer instance.
         """
 
-        model_name: str = self.config.model_config.model_name
-        src_nllb_lang_code: MappedCode = self.config.lang_config.src_nllb_lang_code
+        model_name: str = (
+            self.config.ner_config.model_name
+            if self.task == "ner"
+            else self.config.model_config.model_name
+        )
+
+        tokenizerParams = {
+            "pretrained_model_name_or_path": model_name,
+        }
+
+        if self.task == "translation":
+            tokenizerParams["src_lang"] = self.config.lang_config.src_nllb_lang_code
 
         try:
             self.tokenizer = cast(
-                PreTrainedTokenizerBase,
-                AutoTokenizer.from_pretrained(  # type: ignore
-                    pretrained_model_name_or_path=model_name,
-                    src_lang=src_nllb_lang_code,
-                ),
+                InitlizedTokenizerType,
+                AutoTokenizer.from_pretrained(**tokenizerParams),
             )
 
             self.logger.debug(
-                f"Tokenizer initialized for model: {self.config.model_config.model_name}"
+                f"Tokenizer initialized for model: {model_name}, mode: {self.task}"
             )
 
             return self.tokenizer
