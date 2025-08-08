@@ -2,7 +2,6 @@ import html
 import re
 from typing import Dict, Set
 from tqdm import tqdm
-from transformers import PreTrainedTokenizerBase
 
 from src.utils import AppLogger
 from src.type_defs import (
@@ -11,13 +10,14 @@ from src.type_defs import (
     ArgLoggerType,
     INIFIleValueType,
     CleanedINIFIleValueType,
+    InitlizedTokenizerType,
 )
 
 
 class JsonCleaner:
     def __init__(
         self,
-        tokenizer: PreTrainedTokenizerBase,
+        tokenizer: InitlizedTokenizerType,
         protected_patterns: ProtectedPatternsType,
         max_model_length: int,
         logger: ArgLoggerType = None,
@@ -26,7 +26,7 @@ class JsonCleaner:
         Initializes JsonCleaner with a tokenizer and configuration.
 
         Args:
-            tokenizer (PreTrainedTokenizerBase): The tokenizer to use for tokenization.
+            tokenizer (InitlizedTokenizerType): The tokenizer to use for tokenization.
             protected_patterns (ProtectedPatternsType): A list of patterns that should not be translated.
             max_model_length (int): The maximum length of tokens for the model.
             logger (ArgLoggerType, optional): A logger to use for logging operations (defaults to an AppLogger). Defaults to None.
