@@ -45,11 +45,10 @@ class PreprocessPipeline:
             translated_ini = self.config.training_path_config.ini_files["translated"]
 
             # Path to intermediate JSON files
-            json_path = self.config.training_path_config.json_files
-            data_json_path = json_path["data"]
-            cleaned_json_path = json_path["cleaned"]
-            train_json_path = json_path["train"]
-            test_json_path = json_path["test"]
+            data_json_path = self.config.training_path_config.raw_dataset
+            cleaned_json_path = self.config.training_path_config.cleaned_dataset
+            train_json_path = self.config.training_path_config.trained_data_files["train"]
+            test_json_path = self.config.training_path_config.trained_data_files["test"]
 
             # Step 1: Convert INI to JSON
             self.logger.info("🔃 Step 1: Converting INI files to JSON")
