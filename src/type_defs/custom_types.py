@@ -15,7 +15,12 @@ from typing import (
     TypedDict,
     Union,
 )
-from transformers import PreTrainedModel
+from transformers import (
+    PreTrainedModel,
+    TFPreTrainedModel,
+    PreTrainedTokenizer,
+    PreTrainedTokenizerFast,
+)
 from peft import PeftModel, PeftMixedModel
 
 
@@ -41,9 +46,7 @@ class IniFilePathsType(TypedDict):
     translated: Path  # Path to the pre-translated INI file for training
 
 
-class JsonFilePathsType(TypedDict):
-    data: Path
-    cleaned: Path
+class JsonTrainedDataFilePathsType(TypedDict):
     train: Path
     test: Path
 
@@ -137,8 +140,8 @@ class JSONDataTranslationType(TypedDict):
 
 
 class EntityType(TypedDict):
-    start: str
-    end: str
+    start: int
+    end: int
     label: str
 
 
@@ -173,19 +176,24 @@ LoadedJSONType: TypeAlias = (
 CleanedINIFIleValueType: TypeAlias = INIFIleValueType
 
 
-ModelNameType: TypeAlias = Literal["facebook/nllb-200-distilled-1.3B"]
+TranslationModelNameType: TypeAlias = Literal["facebook/nllb-200-distilled-1.3B"]
+NerModelNameType: TypeAlias = Literal["Jean-Baptiste/roberta-large-ner-english"]
 ModelPathType: TypeAlias = str
 ModelCLIType: TypeAlias = Optional[ModelPathType]
-ModelPathOrName: TypeAlias = ModelNameType | ModelPathType
+ModelPathOrName: TypeAlias = TranslationModelNameType | NerModelNameType | ModelPathType
 
 
 LastCheckpointPathType: TypeAlias = Optional[Path]
-InitializedModelType = PeftModel | PeftMixedModel | PreTrainedModel
+InitializedModelType = PeftModel | PeftMixedModel | PreTrainedModel | TFPreTrainedModel
+InitlizedTokenizerType = PreTrainedTokenizer | PreTrainedTokenizerFast
 TranslatedFileNameType = Optional[str]
 
 BufferType: TypeAlias = List[TranslatedIniLineType]
 
 TranslatorCallableType: TypeAlias = Callable[[str], str]
+
+AppTaskType: TypeAlias = Literal["ner", "translation"]  # TODO: use enum if posible
+CharToTokenType: TypeAlias = List[Tuple[int, int]]
 
 
 class TrainingConfigType(TypedDict):
