@@ -10,14 +10,14 @@ from src.type_defs import (
     ArgLoggerType,
     INIFIleValueType,
     CleanedINIFIleValueType,
-    InitlizedTokenizerType,
+    InitializedTokenizerType,
 )
 
 
 class JsonCleaner:
     def __init__(
         self,
-        tokenizer: InitlizedTokenizerType,
+        tokenizer: InitializedTokenizerType,
         protected_patterns: ProtectedPatternsType,
         max_model_length: int,
         logger: ArgLoggerType = None,

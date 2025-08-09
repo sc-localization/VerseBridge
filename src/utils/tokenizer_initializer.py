@@ -2,7 +2,7 @@ from typing import Optional, cast
 from transformers import AutoTokenizer
 
 from src.config import ConfigManager
-from src.type_defs import LoggerType, AppTaskType, InitlizedTokenizerType
+from src.type_defs import LoggerType, AppTaskType, InitializedTokenizerType
 
 
 class TokenizerInitializer:
@@ -24,9 +24,9 @@ class TokenizerInitializer:
         self.logger = logger
         self.task = task
 
-        self.tokenizer: Optional[InitlizedTokenizerType] = None
+        self.tokenizer: Optional[InitializedTokenizerType] = None
 
-    def initialize(self) -> InitlizedTokenizerType:
+    def initialize(self) -> InitializedTokenizerType:
         """
         Initializes and returns a tokenizer.
         Always uses the same tokenizer with the base model.
@@ -50,7 +50,7 @@ class TokenizerInitializer:
 
         try:
             self.tokenizer = cast(
-                InitlizedTokenizerType,
+                InitializedTokenizerType,
                 AutoTokenizer.from_pretrained(**tokenizerParams),
             )
 

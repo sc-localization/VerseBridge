@@ -185,7 +185,7 @@ ModelPathOrName: TypeAlias = TranslationModelNameType | NerModelNameType | Model
 
 LastCheckpointPathType: TypeAlias = Optional[Path]
 InitializedModelType = PeftModel | PeftMixedModel | PreTrainedModel | TFPreTrainedModel
-InitlizedTokenizerType = PreTrainedTokenizer | PreTrainedTokenizerFast
+InitializedTokenizerType = PreTrainedTokenizer | PreTrainedTokenizerFast
 TranslatedFileNameType = Optional[str]
 
 BufferType: TypeAlias = List[TranslatedIniLineType]

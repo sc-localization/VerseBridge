@@ -5,7 +5,7 @@ from transformers import BatchEncoding
 from src.config import ConfigManager
 from src.type_defs import (
     InitializedModelType,
-    InitlizedTokenizerType,
+    InitializedTokenizerType,
     LoggerType,
     TranslatorCallableType,
     INIFIleValueType,
@@ -20,7 +20,7 @@ class Translator:
         self,
         config: ConfigManager,
         model: InitializedModelType,
-        tokenizer: InitlizedTokenizerType,
+        tokenizer: InitializedTokenizerType,
         text_processor: TextProcessor,
         logger: LoggerType,
     ):
