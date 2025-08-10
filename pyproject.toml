@@ -8,10 +8,12 @@ requires-python = ">=3.10"
 dependencies = [
     "bert-score>=0.3.13",
     "datasets>=3.6.0",
+    "evaluate>=0.4.5",
     "nltk>=3.9.1",
     "peft>=0.15.2",
     "pip>=25.1.1",
     "sacrebleu>=2.5.1",
+    "seqeval>=1.2.2",
     "streamlit>=1.46.1",
     "tensorboard>=2.19.0",
     "torch>=2.7.0",
