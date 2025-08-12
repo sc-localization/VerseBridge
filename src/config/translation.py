@@ -1,26 +1,21 @@
 from dataclasses import dataclass, field
-from pathlib import Path
 
 from src.type_defs import (
     ExcludeKeysType,
     ProtectedPatternsType,
 )
-from .language import LanguageConfig
-from .paths import TranslationPathConfig
 
 
 @dataclass
 class TranslationConfig:
-    path_config: TranslationPathConfig
-    lang_config: LanguageConfig
-
-    translation_src_dir: Path = field(init=False)
-    translation_dest_dir: Path = field(init=False)
     buffer_size: int = 50
 
     min_tokens: int = 16
     length_scale_factors = {
-        ("en", "ru"): 1.5,  # English → Russian: text is usually longer. Or you can get it from ~ len(translated_tokens) / len(source_tokens)
+        (
+            "en",
+            "ru",
+        ): 1.5,  # English → Russian: text is usually longer. Or you can get it from ~ len(translated_tokens) / len(source_tokens)
         # Add other pairs as needed and select the coefficient based on the translation quality obtained
     }
     token_reserve: int = 10
@@ -56,12 +51,3 @@ class TranslationConfig:
     @classmethod
     def get_scale_factor(cls, src_lang: str, tgt_lang: str):
         return cls.length_scale_factors.get((src_lang, tgt_lang), 1.0)
-
-    def __post_init__(self):
-        self.translation_src_dir = (
-            self.path_config.translation_dir / self.lang_config.src_lang.value
-        )
-
-        self.translation_dest_dir = (
-            self.path_config.translation_dir / self.lang_config.tgt_lang.value
-        )

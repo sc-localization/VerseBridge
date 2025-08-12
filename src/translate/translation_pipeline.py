@@ -56,8 +56,12 @@ class TranslationPipeline:
             self.config.translation_path_config.check_input_file_exists()
 
             input_file_path = self.config.translation_path_config.input_file_path
-            translation_src_dir = self.config.translation_config.translation_src_dir
-            translation_dest_dir = self.config.translation_config.translation_dest_dir
+            translation_src_dir = (
+                self.config.translation_path_config.translation_src_dir
+            )
+            translation_dest_dir = (
+                self.config.translation_path_config.translation_dest_dir
+            )
 
             existing_translated_file_path = (
                 Path(existing_translated_file) if existing_translated_file else None
