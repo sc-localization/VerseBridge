@@ -28,7 +28,12 @@ class ConfigManager:
         self.lora_config = LoraConfig()
         self.logging_config = LoggingConfig()
         self.model_config = ModelConfig(self.training_path_config)
-        self.training_config = TrainingConfig(str(self.base_path_config.logging_dir))
-        self.translation_config = TranslationConfig(
-            self.translation_path_config, self.lang_config
+
+        self.training_config = TranslationTrainingConfig(
+            str(self.base_path_config.logging_dir)
+        )
+        self.translation_config = TranslationConfig()
+
+        self.ner_config = NERConfig(
+            training_config=NerTrainingConfig(str(self.base_path_config.logging_dir))
         )
