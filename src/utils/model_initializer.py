@@ -39,7 +39,10 @@ class ModelInitializer:
         self.model_config = config.model_config
 
     def _load_base_model(
-        self, model_name: ModelPathOrName, torch_dtype: torch.dtype = torch.float16
+        self,
+        model_name: ModelPathOrName,
+        for_training: bool,
+        torch_dtype: torch.dtype = torch.float16,
     ) -> PreTrainedModel:
         """
         Loads a base model with safety checks and error handling.
@@ -72,20 +75,16 @@ class ModelInitializer:
                     model_name, **common_params
                 ).to(self.device)
             elif self.task == "ner":
-                # if label_list is None:
-                #     raise ValueError("label_list is required for NER task")
-                # model = AutoModelForTokenClassification.from_pretrained(
-                #     model_name,
-                #     torch_dtype=torch_dtype,
-                #     device_map="auto",
-                #     num_labels=len(label_list),
-                #     id2label={i: label for i, label in enumerate(label_list)},
-                #     label2id={label: i for i, label in enumerate(label_list)},
-                # ).to(self.device)
-
-                return AutoModelForTokenClassification.from_pretrained(
-                    model_name, **common_params
-                ).to(self.device)
+                if for_training:
+                    return AutoModelForTokenClassification.from_pretrained(
+                        model_name,
+                        **common_params,
+                        **self.config.ner_config.ner_label_config,
+                    ).to(self.device)
+                else:
+                    return AutoModelForTokenClassification.from_pretrained(
+                        model_name, **common_params
+                    ).to(self.device)
             else:
                 raise ValueError(f"Unknown mode: {self.task}")
 
@@ -223,6 +222,7 @@ class ModelInitializer:
     def _load_for_training(
         self,
         model_path_or_name: ModelPathOrName,
+        for_training: bool,
         torch_dtype: torch.dtype,
         use_lora: bool,
     ) -> InitializedModelType:
@@ -247,11 +247,7 @@ class ModelInitializer:
                 f"Loading training model for {self.task} (LoRA={use_lora}): {model_name}"
             )
 
-            model = self._load_base_model(
-                model_name,
-                torch_dtype,
-                # self.config.ner_config.label_list if self.mode == "ner" else None, label list
-            )
+            model = self._load_base_model(model_name, for_training, torch_dtype)
             model = self._apply_lora(model)
         else:
             load_path = model_path_or_name
@@ -268,17 +264,14 @@ class ModelInitializer:
 
                 load_path = model_name
 
-            model = self._load_base_model(
-                load_path,
-                torch_dtype,
-                # self.config.ner_config.label_list if task == "ner" else None,
-            )
+            model = self._load_base_model(load_path, for_training, torch_dtype)
 
         return model
 
-    def _load_for_translate(
+    def _load_for_translate_or_ner(
         self,
         model_path_or_name: ModelPathOrName,
+        for_training: bool,
         torch_dtype: torch.dtype,
         use_lora: bool,
     ) -> PeftModel | PreTrainedModel:
@@ -303,14 +296,13 @@ class ModelInitializer:
                     if self.task == "translation"
                     else self.config.ner_config.model_name
                 ),
+                for_training,
                 torch_dtype,
-                # self.mode,
-                # self.config.ner_config.label_list if self.mode == "ner" else None,
             )
 
             return PeftModel.from_pretrained(base_model, model_path_or_name)
 
-        return self._load_base_model(model_path_or_name, torch_dtype)
+        return self._load_base_model(model_path_or_name, for_training, torch_dtype)
 
     def initialize(
         self,
@@ -356,15 +348,15 @@ class ModelInitializer:
                 )
 
                 model = self._load_for_training(
-                    model_path_or_name, torch_dtype, use_lora
+                    model_path_or_name, for_training, torch_dtype, use_lora
                 )
             else:
                 model_path_or_name, use_lora, result_path, checkpoints_path = (
                     self._handle_output_path_rollback(model_path_or_name)
                 )
 
-                model = self._load_for_translate(
-                    model_path_or_name, torch_dtype, use_lora
+                model = self._load_for_translate_or_ner(
+                    model_path_or_name, for_training, torch_dtype, use_lora
                 )
 
             # Update config with resolved paths
@@ -375,7 +367,7 @@ class ModelInitializer:
             )
 
             self.logger.info(
-                f"Model for {self.task} successfully loaded on {self.device.upper()}"
+                f"Model for {self.task}, for training: {for_training} successfully loaded on {self.device.upper()}"
             )
 
             return model
