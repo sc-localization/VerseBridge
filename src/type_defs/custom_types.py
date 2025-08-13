@@ -194,9 +194,9 @@ TranslatorCallableType: TypeAlias = Callable[[str], str]
 
 AppTaskType: TypeAlias = Literal["ner", "translation"]  # TODO: use enum if posible
 CharToTokenType: TypeAlias = List[Tuple[int, int]]
+AggregationStrategyType: TypeAlias = Literal["simple", "average", "max", "none"]
 
-
-class TrainingConfigType(TypedDict):
+class TranslationTrainingConfigType(TypedDict):
     logging_dir: str
 
     num_train_epochs: int
@@ -234,7 +234,30 @@ class TrainingConfigType(TypedDict):
     torch_empty_cache_steps: int
 
 
+class NerTrainingConfigType(TypedDict):
+    logging_dir: str
+
+    num_train_epochs: int
+    learning_rate: float
+    weight_decay: float
+
+    per_device_train_batch_size: int
+    per_device_eval_batch_size: int
+
+    save_total_limit: int
+    load_best_model_at_end: bool
+    metric_for_best_model: str
+    evaluation_strategy: Strategy
+
+
 LoraTargetModulesType: TypeAlias = Optional[Union[list[str], str]]
+
+
+class NerLabelConfig(TypedDict):
+    num_labels: int
+    id2label: Dict[int, str]
+    label2id: Dict[str, int]
+    ignore_mismatched_sizes: bool
 
 
 def is_json_help_strings_dict_type(data: Any) -> TypeGuard[JSONHelpStringsDictType]:
