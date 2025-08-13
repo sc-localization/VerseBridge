@@ -57,20 +57,20 @@ class NERConfig:
 
     category_info: Dict[str, str] = field(
         default_factory=lambda: {
-            "PER": "Конкретные персонажи (игроки, NPC, известные лица)",
-            "ORG": "Официальные организации, корпорации, фракции",
-            "GPE": "Планеты, звездные системы с управлением",
-            "FAC": "Станции, города, зоны с названием",
-            "LOC": "Географические и космические локации без управления",
-            "PRODUCT": "Конкретные предметы, техника, гаджеты",
-            "SHIP": "Названия кораблей и их модификаций",
-            "ARMOR": "Модели брони, костюмы",
-            "WEAPON": "Конкретные виды оружия",
-            "EVENT": "Названия игровых событий, миссий, кампаний",
-            "QUANTITY": "Количественные значения с единицами",
-            "DATE": "Годы, даты, игровые циклы",
-            "MONEY": "Суммы игровой валюты",
-            "MISC": "Прочие категории, не попадающие в другие",
+            "PER": "Specific characters (players, NPCs, famous people)",
+            "ORG": "Official organizations, corporations, factions",
+            "GPE": "Planets, star systems with governance",
+            "FAC": "Stations, cities, zones with names",
+            "LOC": "Geographic and cosmic locations without governance",
+            "PRODUCT": "Specific items, technology, gadgets",
+            "SHIP": "Ship names and their modifications",
+            "ARMOR": "Armor models, suits",
+            "WEAPON": "Specific types of weapons",
+            "EVENT": "Names of game events, missions, campaigns",
+            "QUANTITY": "Quantitative values with units",
+            "DATE": "Years, dates, game cycles",
+            "MONEY": "Amounts of in-game currency",
+            "MISC": "Other categories that don't fit into the above",
         }
     )
 
