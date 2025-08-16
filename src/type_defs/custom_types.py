@@ -15,7 +15,12 @@ from typing import (
     TypedDict,
     Union,
 )
-from transformers import PreTrainedModel
+from transformers import (
+    PreTrainedModel,
+    TFPreTrainedModel,
+    PreTrainedTokenizer,
+    PreTrainedTokenizerFast,
+)
 from peft import PeftModel, PeftMixedModel
 
 
@@ -41,9 +46,7 @@ class IniFilePathsType(TypedDict):
     translated: Path  # Path to the pre-translated INI file for training
 
 
-class JsonFilePathsType(TypedDict):
-    data: Path
-    cleaned: Path
+class JsonTrainedDataFilePathsType(TypedDict):
     train: Path
     test: Path
 
@@ -131,35 +134,69 @@ class HelpStringsLangType(TypedDict):
     en: HelpStringsDictType
 
 
-class JSONDataType(TypedDict):
+class JSONDataTranslationType(TypedDict):
     original: INIFIleValueType
     translated: INIFIleValueType
 
 
-JSONHelpStringsDictType = HelpStringsLangType
-JSONDataListType: TypeAlias = List[JSONDataType]
+class EntityType(TypedDict):
+    start: int
+    end: int
+    label: str
 
-LoadedJSONType: TypeAlias = JSONHelpStringsDictType | JSONDataListType
+
+EntitiesType: TypeAlias = List[EntityType]
+
+
+class JSONDataNERType(TypedDict):
+    id: INIFIleKeyType
+    text: INIFIleValueType
+    entities: EntitiesType
+
+
+class JSONConvertedToBIOType(TypedDict):
+    id: INIFIleKeyType
+    tokens: List[str]
+    labels: List[str]
+
+
+JSONHelpStringsDictType = HelpStringsLangType
+JSONDataTranslationListType: TypeAlias = List[JSONDataTranslationType]
+JSONDataNERListType: TypeAlias = List[JSONDataNERType]
+JSONDataConvertedToBIOListType: TypeAlias = List[JSONConvertedToBIOType]
+
+
+LoadedJSONType: TypeAlias = (
+    JSONHelpStringsDictType
+    | JSONDataTranslationListType
+    | JSONDataNERListType
+    | JSONDataConvertedToBIOListType
+)
 
 CleanedINIFIleValueType: TypeAlias = INIFIleValueType
 
 
-ModelNameType: TypeAlias = Literal["facebook/nllb-200-distilled-1.3B"]
+TranslationModelNameType: TypeAlias = Literal["facebook/nllb-200-distilled-1.3B"]
+NerModelNameType: TypeAlias = Literal["Jean-Baptiste/roberta-large-ner-english"]
 ModelPathType: TypeAlias = str
 ModelCLIType: TypeAlias = Optional[ModelPathType]
-ModelPathOrName: TypeAlias = ModelNameType | ModelPathType
+ModelPathOrName: TypeAlias = TranslationModelNameType | NerModelNameType | ModelPathType
 
 
 LastCheckpointPathType: TypeAlias = Optional[Path]
-InitializedModelType = PeftModel | PeftMixedModel | PreTrainedModel
+InitializedModelType = PeftModel | PeftMixedModel | PreTrainedModel | TFPreTrainedModel
+InitializedTokenizerType = PreTrainedTokenizer | PreTrainedTokenizerFast
 TranslatedFileNameType = Optional[str]
 
 BufferType: TypeAlias = List[TranslatedIniLineType]
 
 TranslatorCallableType: TypeAlias = Callable[[str], str]
 
+AppTaskType: TypeAlias = Literal["ner", "translation"]  # TODO: use enum if posible
+CharToTokenType: TypeAlias = List[Tuple[int, int]]
+AggregationStrategyType: TypeAlias = Literal["simple", "average", "max", "none"]
 
-class TrainingConfigType(TypedDict):
+class TranslationTrainingConfigType(TypedDict):
     logging_dir: str
 
     num_train_epochs: int
@@ -197,7 +234,30 @@ class TrainingConfigType(TypedDict):
     torch_empty_cache_steps: int
 
 
+class NerTrainingConfigType(TypedDict):
+    logging_dir: str
+
+    num_train_epochs: int
+    learning_rate: float
+    weight_decay: float
+
+    per_device_train_batch_size: int
+    per_device_eval_batch_size: int
+
+    save_total_limit: int
+    load_best_model_at_end: bool
+    metric_for_best_model: str
+    evaluation_strategy: Strategy
+
+
 LoraTargetModulesType: TypeAlias = Optional[Union[list[str], str]]
+
+
+class NerLabelConfig(TypedDict):
+    num_labels: int
+    id2label: Dict[int, str]
+    label2id: Dict[str, int]
+    ignore_mismatched_sizes: bool
 
 
 def is_json_help_strings_dict_type(data: Any) -> TypeGuard[JSONHelpStringsDictType]:
@@ -219,7 +279,9 @@ def is_json_help_strings_dict_type(data: Any) -> TypeGuard[JSONHelpStringsDictTy
     return True
 
 
-def is_json_data_list_type(data: Any) -> TypeGuard[JSONDataListType]:
+def is_json_data_tranlation_list_type(
+    data: Any,
+) -> TypeGuard[JSONDataTranslationListType]:
     if not isinstance(data, list):
         return False
 
@@ -234,6 +296,40 @@ def is_json_data_list_type(data: Any) -> TypeGuard[JSONDataListType]:
             item["translated"], str
         ):
             return False
+
+    return True
+
+
+def is_json_data_ner_list_type(data: Any) -> TypeGuard[JSONDataNERListType]:
+    if not isinstance(data, list):
+        return False
+
+    for item in data:
+        if not isinstance(item, dict):
+            return False
+
+        if "id" not in item or "text" not in item or "entities" not in item:
+            return False
+
+        if not isinstance(item["id"], str) or not isinstance(item["text"], str):
+            return False
+
+        if not isinstance(item["entities"], list):
+            return False
+
+        for entity in item["entities"]:
+            if not isinstance(entity, dict):
+                return False
+
+            if "start" not in entity or "end" not in entity or "label" not in entity:
+                return False
+
+            if not isinstance(entity["start"], int) or not isinstance(
+                entity["end"], int
+            ):
+                return False
+            if not isinstance(entity["label"], str):
+                return False
 
     return True
 

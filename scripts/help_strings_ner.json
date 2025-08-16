@@ -1,0 +1,12 @@
+{
+  "ru": {
+    "description": "Запуск пайплайна Извлечения Именованых Cущностей (NER)",
+    "input_file_help": "Путь к исходному INI-файлу.\nЕсли не указан, используется путь из TranslationConfig.",
+    "stage_help": "Выберите этап, который нужно выполнить: extract, review, bio или train"
+  },
+  "en": {
+    "description": "Run NER pipeline",
+    "input_file_help": "Path to the source INI file.\nIf not specified, uses path from TranslationConfig.",
+    "stage_help": "Select the stage to run: extract, review, bio or train"
+  }
+}

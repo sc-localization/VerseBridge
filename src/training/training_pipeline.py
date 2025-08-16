@@ -153,7 +153,9 @@ class TrainingPipeline:
             )
 
             # 3. Load dataset
-            dataset = self.dataset_manager.get_dataset()
+            dataset = self.dataset_manager.get_dataset(
+                data_files=self.config.training_path_config.trained_data_files
+            )
             tokenized_dataset = self.dataset_manager.tokenize_dataset(
                 dataset, tokenizer
             )

@@ -4,7 +4,7 @@ from datasets import load_dataset, DatasetDict
 from transformers import PreTrainedTokenizerBase, BatchEncoding
 
 from src.config import ConfigManager
-from src.type_defs import LoggerType
+from src.type_defs import LoggerType, JsonTrainedDataFilePathsType
 
 
 class DatasetManager:
@@ -12,20 +12,16 @@ class DatasetManager:
         self.config = config
         self.logger = logger
 
-    def get_dataset(
-        self,
-    ) -> DatasetDict:
+    def get_dataset(self, data_files: JsonTrainedDataFilePathsType) -> DatasetDict:
         """Loads the dataset from JSON files specified in the config and returns it as a DatasetDict.
+        Args:
+            data_files (JsonFilePathsType): Dictionary with paths to train and test JSON files.
 
         Returns:
             DatasetDict: A dictionary containing the train and test datasets.
         """
-        data_files = {
-            "train": str(self.config.training_path_config.json_files["train"]),
-            "test": str(self.config.training_path_config.json_files["test"]),
-        }
 
-        dataset: DatasetDict = load_dataset("json", data_files=data_files)  # type: ignore
+        dataset: DatasetDict = load_dataset("json", data_files={k: str(v) for k, v in data_files.items()})  # type: ignore
 
         if not dataset["train"] or not dataset["test"]:
             self.logger.error("One of the datasets is empty!")
@@ -70,8 +66,9 @@ class DatasetManager:
 
         try:
             tokenized_dataset: DatasetDict = dataset.map(
-                tokenize_function, batched=True, 
-                remove_columns=["original", "translated"]
+                tokenize_function,
+                batched=True,
+                remove_columns=["original", "translated"],
             )
             self.logger.debug("Dataset tokenized successfully")
 

@@ -1,27 +1,48 @@
 import logging
 import torch
 from peft import PeftModel, get_peft_model, PeftMixedModel
-from transformers import AutoModelForSeq2SeqLM, PreTrainedModel
+from transformers import (
+    AutoModelForSeq2SeqLM,
+    AutoModelForTokenClassification,
+    PreTrainedModel,
+)
+
 from pathlib import Path
 from typing import Optional, Tuple
 
 from src.config import ConfigManager
-from src.type_defs import ModelCLIType, ModelPathOrName, InitializedModelType
+from src.type_defs import (
+    ModelCLIType,
+    ModelPathOrName,
+    InitializedModelType,
+    AppTaskType,
+)
 from .checkpoint_utils import CheckpointUtils
 from .logging_utils import LoggingUtils
 
 
 class ModelInitializer:
-    def __init__(self, config: ConfigManager, logger: logging.Logger):
+    def __init__(
+        self,
+        config: ConfigManager,
+        logger: logging.Logger,
+        task: AppTaskType = "translation",
+    ):
         self.config = config
         self.logger = logger
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.task = task
+
         self.logging_utils = LoggingUtils()
-        self.model_config = config.model_config
         self.checkpoint_utils = CheckpointUtils(logger)
 
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model_config = config.model_config
+
     def _load_base_model(
-        self, model_name: ModelPathOrName, torch_dtype: torch.dtype = torch.float16
+        self,
+        model_name: ModelPathOrName,
+        for_training: bool,
+        torch_dtype: torch.dtype = torch.float16,
     ) -> PreTrainedModel:
         """
         Loads a base model with safety checks and error handling.
@@ -43,12 +64,29 @@ class ModelInitializer:
         if not model_name:
             raise ValueError("Model name cannot be empty")
 
+        common_params = {
+            "torch_dtype": torch_dtype,
+            "device_map": "auto",
+        }
+
         try:
-            return AutoModelForSeq2SeqLM.from_pretrained(  # type: ignore
-                model_name,
-                torch_dtype=torch_dtype,
-                device_map="auto",
-            ).to(self.device)
+            if self.task == "translation":
+                return AutoModelForSeq2SeqLM.from_pretrained(
+                    model_name, **common_params
+                ).to(self.device)
+            elif self.task == "ner":
+                if for_training:
+                    return AutoModelForTokenClassification.from_pretrained(
+                        model_name,
+                        **common_params,
+                        **self.config.ner_config.ner_label_config,
+                    ).to(self.device)
+                else:
+                    return AutoModelForTokenClassification.from_pretrained(
+                        model_name, **common_params
+                    ).to(self.device)
+            else:
+                raise ValueError(f"Unknown mode: {self.task}")
 
         except Exception as e:
             error_msg: str = f"Failed to load base model {sanitized_name}: {str(e)}"
@@ -67,9 +105,14 @@ class ModelInitializer:
         if not hasattr(model, "enable_input_require_grads"):
             raise NotImplementedError("Model does not support LoRA adapters")
 
-        lora_config = self.config.lora_config
+        lora_config = (
+            self.config.lora_config
+            if self.task == "translation"
+            else self.config.ner_config.lora_config
+        )
 
-        self.logger.info("Applying LoRA configuration")
+        self.logger.info(f"Applying LoRA configuration for {self.task}")
+
         peft_model = get_peft_model(model, lora_config)
         peft_model.print_trainable_parameters()
 
@@ -90,13 +133,25 @@ class ModelInitializer:
             Tuple[Path, Path]: A tuple containing the output path for the model results and
                 the output path for the model checkpoints.
         """
-        if model_path_or_name and "checkpoint-" in model_path_or_name:
-            # For checkpoints, use the parent directory
-            model_dir = Path(model_path_or_name).parent.parent
-            model_type = "checkpoint"
+        if self.task == "translation":
+            src_lang = self.config.lang_config.src_lang.value
+            tgt_lang = self.config.lang_config.tgt_lang.value
+            lang_pair = f"{src_lang}-{tgt_lang}"
+
+            model_type = (
+                f"lora_model_{lang_pair}" if use_lora else f"base_model_{lang_pair}"
+            )
+            model_dir = (
+                self.config.base_path_config.models_dir / "translation" / model_type
+            )
+        elif self.task == "ner":
+            model_type = "lora_model" if use_lora else "base_model"
+            model_dir = self.config.base_path_config.models_dir / "ner" / model_type
         else:
-            model_type = "lora" if use_lora else "base_model"
-            model_dir = self.config.base_path_config.models_dir / model_type
+            raise ValueError(f"Unsupported task: {self.task}")
+
+        if model_path_or_name and "checkpoint-" in model_path_or_name:
+            model_dir = Path(model_path_or_name).parent.parent
 
         result_path = model_dir / "result"
         checkpoints_path = model_dir / "checkpoints"
@@ -123,29 +178,41 @@ class ModelInitializer:
             Path(model_path_or_name).exists()
             and Path(model_path_or_name, "adapter_config.json").exists()
         )
-        self.logger.debug(f"LoRA detected: {use_lora}")
+        self.logger.debug(f"LoRA detected for {self.task}: {use_lora}")
 
-        if (
-            model_path_or_name != self.model_config.model_name
-            and not Path(model_path_or_name).exists()
-        ):
+        model_name = (
+            self.config.model_config.model_name
+            if self.task == "translation"
+            else self.config.ner_config.model_name
+        )
+
+        if model_path_or_name != model_name and not Path(model_path_or_name).exists():
             self.logger.warning(
                 f"Model path {model_path_or_name} not found. Using base model."
             )
 
-            model_path_or_name = self.model_config.model_name
+            model_path_or_name = model_name
             use_lora = False
 
-        if model_path_or_name == self.model_config.model_name:
+        if model_path_or_name == model_name:
             result_path, checkpoints_path = self._resolve_model_paths(False)
         else:
             model_dir: Path = Path(model_path_or_name).parent.parent
 
             if not model_dir.exists() or model_dir == Path():
                 self.logger.warning(
-                    f"Invalid model directory {model_dir}, using base model paths"
+                    f"Invalid model directory {model_dir} for {self.task}, using base model paths"
                 )
-                model_dir = self.config.base_path_config.models_dir / "base_model"
+
+                model_dir = (
+                    self.config.base_path_config.models_dir
+                    / ("translation" if self.task == "translation" else "ner")
+                    / (
+                        f"base_model_{self.config.lang_config.src_lang.value}-{self.config.lang_config.tgt_lang.value}"
+                        if self.task == "translation"
+                        else "base_model"
+                    )
+                )
 
             result_path = model_dir / "result"
             checkpoints_path = model_dir / "checkpoints"
@@ -155,6 +222,7 @@ class ModelInitializer:
     def _load_for_training(
         self,
         model_path_or_name: ModelPathOrName,
+        for_training: bool,
         torch_dtype: torch.dtype,
         use_lora: bool,
     ) -> InitializedModelType:
@@ -168,36 +236,42 @@ class ModelInitializer:
         Returns:
              PeftModel | PeftMixedModel | PreTrainedModel: The loaded model.
         """
-        if use_lora:
-            model_name = self.model_config.model_name
-            self.logger.info(f"Loading training model (LoRA={use_lora}): {model_name}")
+        model_name = (
+            self.config.model_config.model_name
+            if self.task == "translation"
+            else self.config.ner_config.model_name
+        )
 
-            model = self._load_base_model(model_name, torch_dtype)
+        if use_lora:
+            self.logger.info(
+                f"Loading training model for {self.task} (LoRA={use_lora}): {model_name}"
+            )
+
+            model = self._load_base_model(model_name, for_training, torch_dtype)
             model = self._apply_lora(model)
         else:
             load_path = model_path_or_name
-            self.logger.info(f"Loading training model (LoRA={use_lora}): {load_path}")
+            self.logger.info(
+                f"Loading training model for {self.task} (LoRA={use_lora}): {load_path}"
+            )
 
-            if Path(load_path).exists():
-                # Check if the path is a checkpoint
-                if "checkpoint-" in load_path:
-                    self.logger.info(f"Loading from checkpoint: {load_path}")
+            if Path(load_path).exists() and "checkpoint-" in load_path:
+                self.logger.info(f"Loading from checkpoint: {load_path}")
+            elif load_path != model_name:
+                self.logger.warning(
+                    f"Model path {load_path} not found, falling back to base model"
+                )
 
-                model = self._load_base_model(load_path, torch_dtype)
-            else:
-                if load_path != self.model_config.model_name:
-                    self.logger.warning(
-                        f"Model path {load_path} not found, falling back to base model"
-                    )
+                load_path = model_name
 
-                load_path = self.model_config.model_name
-                model = self._load_base_model(load_path, torch_dtype)
+            model = self._load_base_model(load_path, for_training, torch_dtype)
 
         return model
 
-    def _load_for_translate(
+    def _load_for_translate_or_ner(
         self,
         model_path_or_name: ModelPathOrName,
+        for_training: bool,
         torch_dtype: torch.dtype,
         use_lora: bool,
     ) -> PeftModel | PreTrainedModel:
@@ -212,17 +286,23 @@ class ModelInitializer:
             PeftModel | PreTrainedModel: The loaded model.
         """
         self.logger.info(
-            f"Loading translation model (LoRA={use_lora}): {model_path_or_name}"
+            f"Loading model for {self.task} (LoRA={use_lora}): {model_path_or_name}"
         )
 
         if use_lora:
             base_model = self._load_base_model(
-                self.model_config.model_name, torch_dtype
+                (
+                    self.config.model_config.model_name
+                    if self.task == "translation"
+                    else self.config.ner_config.model_name
+                ),
+                for_training,
+                torch_dtype,
             )
 
             return PeftModel.from_pretrained(base_model, model_path_or_name)
 
-        return self._load_base_model(model_path_or_name, torch_dtype)
+        return self._load_base_model(model_path_or_name, for_training, torch_dtype)
 
     def initialize(
         self,
@@ -240,48 +320,58 @@ class ModelInitializer:
             with_lora (bool, optional): Whether to use LoRA adapters. Defaults to False.
 
         Returns:
-            PeftModel | PeftMixedModel | PreTrainedModel: The loaded model.
+            InitializedModelType: The loaded model.
         """
         try:
             # Resolve model path
-            model_path_or_name: ModelPathOrName = (
-                model_cli_path or self.model_config.model_name
+            model_name = (
+                self.config.model_config.model_name
+                if self.task == "translation"
+                else self.config.ner_config.model_name
             )
+            model_path_or_name: ModelPathOrName = model_cli_path or model_name
 
             # Configure paths and LoRA usage
             if for_training:
                 use_lora = with_lora
+
                 result_path, checkpoints_path = self._resolve_model_paths(
                     use_lora, model_path_or_name
                 )
+
                 self.model_config.last_checkpoint = (
                     self.checkpoint_utils.get_latest_checkpoint(checkpoints_path)
                 )
+
                 self.logger.debug(
-                    f"Last checkpoint for training: {self.model_config.last_checkpoint}"
+                    f"Last checkpoint for {self.task}: {self.model_config.last_checkpoint}"
                 )
+
                 model = self._load_for_training(
-                    model_path_or_name, torch_dtype, use_lora
+                    model_path_or_name, for_training, torch_dtype, use_lora
                 )
             else:
                 model_path_or_name, use_lora, result_path, checkpoints_path = (
                     self._handle_output_path_rollback(model_path_or_name)
                 )
-                model = self._load_for_translate(
-                    model_path_or_name, torch_dtype, use_lora
+
+                model = self._load_for_translate_or_ner(
+                    model_path_or_name, for_training, torch_dtype, use_lora
                 )
 
             # Update config with resolved paths
             self.model_config.result_path = result_path
             self.model_config.checkpoints_path = checkpoints_path
             self.logger.debug(
-                f"Resolved paths: result={result_path}, checkpoints={checkpoints_path}"
+                f"Resolved pathsfor {self.task}: result={result_path}, checkpoints={checkpoints_path}"
             )
 
-            self.logger.info(f"Model successfully loaded on {self.device.upper()}")
+            self.logger.info(
+                f"Model for {self.task}, for training: {for_training} successfully loaded on {self.device.upper()}"
+            )
 
             return model
         except Exception as e:
-            error_msg = f"Model initialization failed: {str(e)}"
+            error_msg = f"Model initialization for {self.task} failed: {str(e)}"
             self.logger.error(error_msg)
             raise ValueError(error_msg)
