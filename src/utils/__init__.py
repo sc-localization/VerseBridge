@@ -8,6 +8,7 @@ from .checkpoint_utils import CheckpointUtils
 from .system_utils import SystemUtils
 from .logging_utils import LoggingUtils
 from .help_utils import HelpUtils
+from .ner_utils import NerUtils
 
 __all__ = [
     "AppLogger",
@@ -20,4 +21,5 @@ __all__ = [
     "SystemUtils",
     "LoggingUtils",
     "HelpUtils",
+    "NerUtils",
 ]

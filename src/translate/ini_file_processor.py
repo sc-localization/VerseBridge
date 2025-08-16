@@ -1,10 +1,10 @@
 from pathlib import Path
 from tqdm import tqdm
-from typing import Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 
 from src.config import ConfigManager
-from src.utils import FileUtils
+from src.utils import FileUtils, NerUtils
 from src.type_defs import (
     ExcludeKeysType,
     INIDataType,
@@ -13,7 +13,6 @@ from src.type_defs import (
     INIFIleKeyType,
     INIFIleValueType,
     TranslatedIniLineType,
-    TranslatedIniValueType,
     is_ini_file_line,
 )
 from .text_processor import TextProcessor
@@ -31,6 +30,7 @@ class IniFileProcessor:
         self.logger = logger
         self.text_processor = text_processor
         self.file_utils = FileUtils(logger=logger)
+        self.ner_utils = NerUtils(logger=logger)
 
     def _should_translate(
         self,
@@ -67,9 +67,11 @@ class IniFileProcessor:
         exclude_keys: ExcludeKeysType,
         missing_keys: Set[INIFIleKeyType],
         untranslated_keys: Set[INIFIleKeyType],
-    ) -> TranslatedIniLineType:
+        ner_patterns: List[str],
+        ner_cache: Dict[str, str],
+    ) -> Tuple[TranslatedIniLineType, TranslatedIniLineType]:
         """
-        Processes a line by translating its value if necessary.
+        Processes a line, returning both context and full versions.
 
         Args:
             key (str): The key of the line.
@@ -79,30 +81,33 @@ class IniFileProcessor:
             exclude_keys (ExcludeKeysType): A tuple of keys to exclude from translation.
             missing_keys (Set[str]): Keys present in input but not in output or existing items.
             untranslated_keys (Set[str]): Keys with untranslated values in existing items.
+            ner_patterns (Optional[List[str]]): Patterns for NER protection.
+            ner_cache (Optional[Dict[str, str]]): Cache for NER translations.
+
 
         Returns:
-            str: The processed line in the format 'key=value'.
+            Tuple[str, str]: The processed line in the format 'key=value'.
         """
+
         if self._should_translate(
             key, value, exclude_keys, missing_keys, untranslated_keys
         ):
-            translated_value: TranslatedIniValueType = (
-                self.text_processor.translate_text(value, translator)
+
+            context_value, full_value = self.text_processor.translate_text(
+                value, translator, ner_patterns, ner_cache
             )
+
         else:
-            translated_value: INIFIleValueType = processed_lines.get(key, value)
+            context_value = full_value = processed_lines.get(key, value)
 
-        translation_result = f"{key}={translated_value}\n"
+        context_line = f"{key}={context_value}\n"
+        full_line = f"{key}={full_value}\n"
 
-        if not is_ini_file_line(translation_result):
-            self.logger.error(
-                f"Invalid INI line format for key '{key}': {translation_result}"
-            )
-            raise ValueError(
-                f"Invalid INI line format for key '{key}': {translation_result}"
-            )
+        # Проверка формата (существующая)
+        if not is_ini_file_line(context_line) or not is_ini_file_line(full_line):
+            raise ValueError(f"Invalid INI line format for key '{key}'")
 
-        return translation_result
+        return context_line, full_line
 
     def _read_files(
         self,
@@ -217,8 +222,10 @@ class IniFileProcessor:
         Args:
             translation_input_file: Path to the input INI file.
             translation_result_file: Path to the translation result INI file.
-            translator: A callable for translating the text.
-            existing_translated_file: Path to an existing translated INI file, if any.
+            translator: A callable that takes a source and target language code
+                and returns a translated string.
+            existing_translated_file: Path to an existing translated INI file,
+                if any.
         """
         self.logger.info(f"Translating file: {translation_input_file}")
         self.logger.debug(f"Result translation file: {translation_result_file}")
@@ -247,7 +254,9 @@ class IniFileProcessor:
             )
 
         input_items, result_items, existing_items = self._read_files(
-            translation_input_file, translation_result_file, existing_translated_file
+            translation_input_file,
+            translation_result_file,
+            existing_translated_file,
         )
 
         missing_keys, obsolete_keys, untranslated_keys = self._compare_keys(
@@ -291,20 +300,37 @@ class IniFileProcessor:
                 else:
                     processed_lines[key] = input_items[key]
 
-        with BufferedFileWriter(
-            translation_result_file,
-            self.config.translation_config.buffer_size,
-            self.logger,
-        ) as writer:
+        # Create two files
+        context_file = translation_result_file.with_name(
+            translation_result_file.stem + "_context.ini"
+        )
+        full_file = translation_result_file.with_name(
+            translation_result_file.stem + "_full.ini"
+        )
+
+        ner_patterns = self.ner_utils.get_ner_patterns(
+            self.config.ner_path_config.corrected_streamlit_data_path,
+            self.config.ner_path_config.extracted_ner_data_path,
+        )
+        ner_cache: Dict[str, str] = {}  # Global cache for ner
+
+        with (
+            BufferedFileWriter(
+                context_file, self.config.translation_config.buffer_size, self.logger
+            ) as context_writer,
+            BufferedFileWriter(
+                full_file, self.config.translation_config.buffer_size, self.logger
+            ) as full_writer,
+        ):
             for key, value in tqdm(
                 sorted(processed_lines.items()),
-                desc="Translating INI",
+                desc="Translating INI with NER split",
                 total=len(processed_lines),
             ):
                 if key in obsolete_keys:
                     continue
 
-                translated_line = self._process_line(
+                context_line, full_line = self._process_line(
                     key,
                     value,
                     translator,
@@ -312,6 +338,9 @@ class IniFileProcessor:
                     self.config.translation_config.exclude_keys,
                     missing_keys,
                     untranslated_keys,
+                    ner_patterns,
+                    ner_cache,
                 )
 
-                writer.write(translated_line)
+                context_writer.write(context_line)
+                full_writer.write(full_line)

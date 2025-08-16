@@ -1,6 +1,5 @@
 from dataclasses import asdict, dataclass, field
 from enum import Enum
-
 from src.type_defs import (
     Optimizer,
     Scheduler,
@@ -8,14 +7,33 @@ from src.type_defs import (
     LogReportTargetListType,
     Metric,
     LabelNames,
-    TrainingConfigType,
+    TranslationTrainingConfigType,
     Strategy,
     LabelNamesListType,
+    NerTrainingConfigType,
 )
 
 
 @dataclass
-class TrainingConfig:
+class NerTrainingConfig:
+    logging_dir: str
+
+    num_train_epochs: int = 3
+    learning_rate: float = 2e-5
+    weight_decay: float = 0.01
+    per_device_train_batch_size: int = 8
+    per_device_eval_batch_size: int = 8
+    save_total_limit: int = 2
+    load_best_model_at_end: bool = True
+    metric_for_best_model: str = "f1"
+    eval_strategy: Strategy = Strategy.STEPS
+
+    def to_dict(self) -> NerTrainingConfigType:
+        return asdict(self)  # type: ignore
+
+
+@dataclass
+class TranslationTrainingConfig:
     """
     Parameters for training Hugging Face Transformers models.
     See:
@@ -67,7 +85,7 @@ class TrainingConfig:
     # === Additional parameters ===
     torch_empty_cache_steps: int = 100
 
-    def to_dict(self) -> TrainingConfigType:
+    def to_dict(self) -> TranslationTrainingConfigType:
         config_as_dict = asdict(self)
 
         for key, value in config_as_dict.items():

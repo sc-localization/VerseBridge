@@ -2,11 +2,18 @@ import random
 from typing import Tuple
 
 from src.utils import AppLogger
-from src.type_defs import JSONDataListType, ArgLoggerType, LoggerType
+from src.type_defs import (
+    JSONDataTranslationListType,
+    ArgLoggerType,
+    LoggerType,
+    JSONDataConvertedToBIOListType,
+)
 
 
 class DataSplitter:
-    def __init__(self, train_split_ratio: float, logger: ArgLoggerType | None = None) -> None:
+    def __init__(
+        self, train_split_ratio: float, logger: ArgLoggerType | None = None
+    ) -> None:
         """
         Initializes DataSplitter with a data split ratio.
 
@@ -24,8 +31,11 @@ class DataSplitter:
         self.train_split_ratio: float = train_split_ratio
 
     def split_data(
-        self, data: JSONDataListType
-    ) -> Tuple[JSONDataListType, JSONDataListType]:
+        self, data: JSONDataTranslationListType | JSONDataConvertedToBIOListType
+    ) -> Tuple[
+        JSONDataTranslationListType | JSONDataConvertedToBIOListType,
+        JSONDataTranslationListType | JSONDataConvertedToBIOListType,
+    ]:
         """
         Shuffles the data and splits it into training and validation sets.
 
@@ -44,12 +54,18 @@ class DataSplitter:
             raise ValueError("Data is empty")
 
         try:
-            shuffled_data: JSONDataListType = data.copy()
+            shuffled_data: (
+                JSONDataTranslationListType | JSONDataConvertedToBIOListType
+            ) = data.copy()
             random.shuffle(shuffled_data)
 
             train_size: int = int(self.train_split_ratio * len(shuffled_data))
-            train_data: JSONDataListType = shuffled_data[:train_size]
-            test_data: JSONDataListType = shuffled_data[train_size:]
+            train_data: JSONDataTranslationListType | JSONDataConvertedToBIOListType = (
+                shuffled_data[:train_size]
+            )
+            test_data: JSONDataTranslationListType | JSONDataConvertedToBIOListType = (
+                shuffled_data[train_size:]
+            )
 
             self.logger.debug(f"Created train split with {len(train_data)} entries")
             self.logger.debug(f"Created test split with {len(test_data)} entries")

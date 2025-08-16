@@ -1,10 +1,11 @@
 from typing import List
 import torch
-from transformers import PreTrainedTokenizerBase, BatchEncoding
+from transformers import BatchEncoding
 
 from src.config import ConfigManager
 from src.type_defs import (
     InitializedModelType,
+    InitializedTokenizerType,
     LoggerType,
     TranslatorCallableType,
     INIFIleValueType,
@@ -19,7 +20,7 @@ class Translator:
         self,
         config: ConfigManager,
         model: InitializedModelType,
-        tokenizer: PreTrainedTokenizerBase,
+        tokenizer: InitializedTokenizerType,
         text_processor: TextProcessor,
         logger: LoggerType,
     ):

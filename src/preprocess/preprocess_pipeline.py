@@ -2,7 +2,7 @@ from typing import Optional
 
 from src.config import ConfigManager
 from src.utils import AppLogger, FileUtils, TokenizerInitializer
-from src.type_defs import ArgLoggerType, is_json_data_list_type
+from src.type_defs import ArgLoggerType, is_json_data_tranlation_list_type
 from .ini_to_json_converter import IniConverter
 from .json_cleaner import JsonCleaner
 from .data_splitter import DataSplitter
@@ -45,11 +45,10 @@ class PreprocessPipeline:
             translated_ini = self.config.training_path_config.ini_files["translated"]
 
             # Path to intermediate JSON files
-            json_path = self.config.training_path_config.json_files
-            data_json_path = json_path["data"]
-            cleaned_json_path = json_path["cleaned"]
-            train_json_path = json_path["train"]
-            test_json_path = json_path["test"]
+            data_json_path = self.config.training_path_config.raw_dataset
+            cleaned_json_path = self.config.training_path_config.cleaned_dataset
+            train_json_path = self.config.training_path_config.trained_data_files["train"]
+            test_json_path = self.config.training_path_config.trained_data_files["test"]
 
             # Step 1: Convert INI to JSON
             self.logger.info("🔃 Step 1: Converting INI files to JSON")
@@ -64,7 +63,7 @@ class PreprocessPipeline:
 
             loaded_json_data = self.file_utils.load_json(data_json_path)
 
-            if not is_json_data_list_type(loaded_json_data):
+            if not is_json_data_tranlation_list_type(loaded_json_data):
                 raise ValueError(
                     "JSON data must contain a list of dictionaries with 'original' and 'translated' keys"
                 )
@@ -77,7 +76,7 @@ class PreprocessPipeline:
 
             loaded_cleaned_data = self.file_utils.load_json(cleaned_json_path)
 
-            if not is_json_data_list_type(loaded_cleaned_data):
+            if not is_json_data_tranlation_list_type(loaded_cleaned_data):
                 raise ValueError(
                     "JSON data must contain a list of dictionaries with 'original' and 'translated' keys"
                 )

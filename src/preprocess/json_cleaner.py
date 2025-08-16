@@ -2,22 +2,22 @@ import html
 import re
 from typing import Dict, Set
 from tqdm import tqdm
-from transformers import PreTrainedTokenizerBase
 
 from src.utils import AppLogger
 from src.type_defs import (
     ProtectedPatternsType,
-    JSONDataListType,
+    JSONDataTranslationListType,
     ArgLoggerType,
     INIFIleValueType,
     CleanedINIFIleValueType,
+    InitializedTokenizerType,
 )
 
 
 class JsonCleaner:
     def __init__(
         self,
-        tokenizer: PreTrainedTokenizerBase,
+        tokenizer: InitializedTokenizerType,
         protected_patterns: ProtectedPatternsType,
         max_model_length: int,
         logger: ArgLoggerType = None,
@@ -26,7 +26,7 @@ class JsonCleaner:
         Initializes JsonCleaner with a tokenizer and configuration.
 
         Args:
-            tokenizer (PreTrainedTokenizerBase): The tokenizer to use for tokenization.
+            tokenizer (InitlizedTokenizerType): The tokenizer to use for tokenization.
             protected_patterns (ProtectedPatternsType): A list of patterns that should not be translated.
             max_model_length (int): The maximum length of tokens for the model.
             logger (ArgLoggerType, optional): A logger to use for logging operations (defaults to an AppLogger). Defaults to None.
@@ -205,7 +205,9 @@ class JsonCleaner:
 
         return False
 
-    def clean_json_data(self, data: JSONDataListType) -> JSONDataListType:
+    def clean_json_data(
+        self, data: JSONDataTranslationListType
+    ) -> JSONDataTranslationListType:
         """
         Cleans JSON data, removing duplicates, empty records, and incorrect texts.
 
@@ -216,7 +218,7 @@ class JsonCleaner:
             Cleaned data.
         """
         seen_pairs: Set[str] = set()
-        cleaned_data: JSONDataListType = []
+        cleaned_data: JSONDataTranslationListType = []
 
         for item in tqdm(data, desc="Cleaning data"):
             original_text: CleanedINIFIleValueType = self.clean_text(
@@ -272,7 +274,9 @@ class JsonCleaner:
                 continue
 
             seen_pairs.add(pair)
-            cleaned_data.append({"original": original_text, "translated": translated_text})
+            cleaned_data.append(
+                {"original": original_text, "translated": translated_text}
+            )
 
         self._log_cleaning_stats(len(cleaned_data))
 
