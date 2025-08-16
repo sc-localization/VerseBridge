@@ -1,30 +1,34 @@
 <div align="center">
-  <h1>VerseBridge</h1>
+	<h1>VerseBridge</h1>
 
-  <p>Инструмент для перевода текстов Star Citizen на основе дообученной модели NLLB-200</p>
-  
+  <p>Инструмент для автоматизации перевода и анализа игровых текстов с использованием современных моделей машинного обучения. Поддерживает многоязычный перевод, распознавание именованных сущностей (NER), а также обучение и адаптацию моделей для игровых задач и пользовательских датасетов.</p>
+
   <img src="https://github.com/user-attachments/assets/cde49eaa-f857-4be0-a2c7-215bd9c0a471" width="100">
 </div>
 
 <div align="center">
-   <i>Это неофициальный фан-сайт Star Citizen, не аффилированный с Cloud Imperium Games. Весь контент, не созданный владельцем или пользователями, принадлежит их правообладателям.</i>
+	<i>Неофициальный фан-сайт Star Citizen, не аффилирован с Cloud Imperium Games. Весь контент, не созданный владельцем или пользователями сайта, принадлежит их правообладателям.</i>
 </div>
 
 <br>
 
 > **Проверено на**: _WSL Ubuntu 22.04_, _NVIDIA CUDA 12.8_, _12GB 4070 GPU_
 
-**Документация**: [English](../README.md)
+**Документация**: [Русский](doc/README_RU.md)
 
-Это инструмент **перевода текстов** для игровых нужд, основанный на [NLLB-200 model](https://huggingface.co/facebook/nllb-200-distilled-1.3B) с дополнительным дообучением на датасете, который может быть создан на основе существующего перевода.
+---
 
-### Возможности
+**Модуль перевода**
 
-- **Модель NLLB-200**: Поддержка перевода на множество языков с высокой точностью.
-- **Дообучение для Star Citizen**: Обучение на игровых переводах для контекстуально корректных результатов.
-- **Мультиязычная поддержка**: Перевод на разные языки с использованием кодов FLORES-200.
-- **Модульный пайплайн**: Отдельные скрипты для препроцессинга, обучения и перевода.
-- **Интеграция LoRA**: Эффективное дообучение с Low-Rank Adaptation для экономии ресурсов.
+Автоматизирует перевод игровых текстов между языками с помощью дообученных моделей машинного обучения. Используется для локализации ресурсов, поддерживает сохранение структуры и специальных конструкций в исходных файлах. Обеспечивает быстрый и качественный машинный перевод с учетом игрового контекста.
+
+**Модуль NER (распознавание именованных сущностей)**
+
+Позволяет извлекать именованные сущности (например, имена, организации, игровые объекты) из текстов. Это важно для автоматической разметки, анализа, а также для повышения качества перевода — например, чтобы не переводить имена собственные или использовать их для дополнительной адаптации модели.
+
+**Связь модулей**
+
+NER может использоваться как вспомогательный этап перед переводом: сначала из текста извлекаются сущности, которые затем можно защитить от перевода или обработать отдельно. Это помогает избежать ошибок при переводе имен, терминов и других важных элементов, а также повышает итоговое качество локализации.
 
 ## Установка
 
@@ -32,63 +36,72 @@
 
 **Примечание:** CUDA 12.8 необходим для совместимости с pytorch
 
-Для установки CUDA на WSL Ubuntu 22.04 выполните следующие шаги:
+Для установки CUDA на WSL Ubuntu 22.04 следуйте [инструкции](https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&Distribution=WSL-Ubuntu&target_version=2.0&target_type=deb_network) или выполните:
 
 ```sh
-wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-keyring_1.1-1_all.deb
-sudo dpkg -i cuda-keyring_1.1-1_all.deb
-sudo apt update
-sudo apt -y install cuda-toolkit-12-8
+  wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-keyring_1.1-1_all.deb
+  sudo dpkg -i cuda-keyring_1.1-1_all.deb
+  sudo apt update
+  sudo apt -y install cuda-toolkit-12-8
 ```
 
 1. Установите UV:
+
    ```sh
    curl -LsSf https://astral.sh/uv/install.sh | sh
    ```
-   В Windows:
+
+   или в Windows:
+
    ```sh
    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
    ```
+
 2. Клонируйте репозиторий:
+
    ```sh
    git clone https://github.com/sc-localization/VerseBridge.git
    cd VerseBridge
    ```
-3. Установите зависимости:
+
+3. Установите необходимые зависимости:
+
    ```sh
    uv sync
    ```
 
 ## Использование
 
-### Препроцессинг данных
+---
 
-Для подготовки данных к обучению или переводу запустите пайплайн препроцессинга из корня проекта:
+### Процесс перевода
+
+#### 1. Предобработка данных
+
+Для подготовки данных для обучения или перевода запустите pipeline предобработки из корня проекта:
 
 ```sh
 uv run -m scripts.run_preprocess
 ```
 
-**Шаги**:
+**Этапы:**
 
-1. **Настройте пути**:
+1. **Настройка путей**:
 
-   - Обновите `src/config/paths.py`, указав пути к оригинальному и переведенному `.ini` файлам (например, `global_original.ini`, `global_pre_translated.ini`).
-   - Установите `target_lang_code` в `src/config/language.py` (например, `rus_Cyrl` для русского) с использованием [FLORES-200 codes](https://github.com/facebookresearch/flores/blob/main/flores200/README.md#languages-in-flores-200).
+- Обновите `src/config/paths.py` с путями к оригинальным и переведённым `.ini` файлам (например, `global_original.ini`, `global_pre_translated.ini`).
+- Установите `target_lang_code` в `src/config/language.py` (например, `rus_Cyrl` для русского) используя [FLORES-200 codes](https://github.com/facebookresearch/flores/blob/main/flores200/README.md#languages-in-flores-200).
 
-2. **Разместите файлы**:
+2. **Размещение файлов**:
 
-   - Скопируйте оригинальный (`global_original`) и переведённый (`global_pre_translated`) `.ini` файлы в папку `data/`.
+- Скопируйте оригинальный (`global_original`) в `data/raw/en` и переведённый (`global_pre_translated`) `.ini` в `data/raw/{target_lang_code}`.
 
-3. **Запустите препроцессинг**:
-   - **Конвертация `.ini` в JSON**:
-     Результат: `data/data.json`.
-   - **Очистка данных**:
-     Результат: `data/cleaned_data.json`. Удаляет дубликаты, пустые строки и слишком длинные тексты.
-   - **Разделение данных**:
-     Результат: `data/train.json` (80%), `data/valid.json` (20%).
+3. **Запуск предобработки**:
 
-**Формат датасета**:
+- **Конвертация `.ini` в JSON**: Выход: `data/raw/training/{source_lang_code-target_lang_code}/data.json`.
+- **Очистка данных**: Выход: `data/data/raw/training/{source_lang_code-target_lang_code}/cleaned_data.json`. Удаляет дубликаты, пустые строки и слишком длинные тексты.
+- **Разделение данных**: Выход: `data/data/raw/training/{source_lang_code-target_lang_code}/train.json` (80%), `data/data/raw/training/{source_lang_code-target_lang_code}/valid.json` (20%).
+
+**Формат датасета:**
 
 ```json
 {
@@ -97,9 +110,9 @@ uv run -m scripts.run_preprocess
 }
 ```
 
-### Обучение модели
+#### 2. Обучение модели
 
-Для дообучения NLLB-200 запустите:
+Для дообучения модели NLLB-200 выполните:
 
 ```sh
 uv run -m scripts.run_training
@@ -107,26 +120,26 @@ uv run -m scripts.run_training
 
 **Примечания:**
 
-- Препроцессинг запускается автоматически, если отсутствуют файлы train/test JSON.
-- Во время оценки считаются метрики (BLEU, ChrF, METEOR, BERTScore).
+- Предобработка запускается автоматически, если отсутствуют файлы для обучения/тестирования.
+- Метрики (BLEU, ChrF, METEOR, BERTScore) вычисляются во время оценки.
 - Чекпоинты и логи сохраняются в указанных директориях.
-- Включён ранний останов с patience=5 и threshold=0.001.
+- Включён early stopping с patience=5 и threshold=0.001.
 
-**Мониторинг обучения**:
+**Мониторинг обучения:**
 
 ```sh
 uv run tensorboard --logdir logs/
 ```
 
-**Конфигурация**:
+**Конфигурация:**
 
-- Изменяйте параметры обучения в `src/config/training.py` (например, эпохи, размер батча).
+- Обновите `src/config/training.py` для параметров обучения (например, эпохи, размер батча).
 - Убедитесь, что `data/train.json` и `data/valid.json` готовы.
 - Чекпоинты и результаты сохраняются в `models/`.
 
-### Перевод файлов
+#### 3. Перевод файлов
 
-Для перевода `.ini` файлов запустите:
+Для перевода `.ini` файлов выполните:
 
 ```sh
 uv run -m scripts.run_translation
@@ -135,23 +148,95 @@ uv run -m scripts.run_translation
 **Примечания:**
 
 - INI-файлы обрабатываются с сохранением защищённых паттернов (например, плейсхолдеры, переносы строк).
-- Длинные тексты разбиваются с учётом лимита токенов модели.
+- Длинные тексты разбиваются с учётом лимитов токенов модели.
 - Логи сохраняются в указанной директории.
 - Если не указан --input_path, скрипт обработает все INI-файлы в исходной директории.
 
-**Результат**:
+**Выходные данные:**
 
 - Переведённые файлы сохраняются в `data/translated/<lang_code>/` (например, `data/translated/ru/global_original.ini`).
 
-**Конфигурация**:
+**Конфигурация:**
 
 - Установите `target_lang_code` и `translate_dest_dir` в `src/config/translation.py`.
 
-### Использование через CLI
+---
 
-**Примечание:** используйте атрибут `--help` для справки по аргументам
+### Процесс NER (распознавание именованных сущностей)
 
-**1. Обучение модели (run_training.py)**
+#### 1. Извлечение и подготовка данных
+
+Запустите предобработку и извлечение сущностей из исходных текстов:
+
+```sh
+uv run -m scripts.run_ner --stage preprocess
+```
+
+Будут созданы файлы для разметки и обучения в папке `data/ner/`:
+
+- `ner_unannotated.json` — неразмеченные данные для ручной разметки
+- `dataset_bio.json` — данные в формате BIO для обучения
+
+#### 2. Ручная разметка и ревью
+
+Для ручной проверки и корректировки разметки используйте веб-интерфейс (Streamlit):
+
+```sh
+uv run -m scripts.run_ner --stage review
+```
+
+После проверки будет создан файл `dataset_corrected.json`.
+
+#### 3. Обучение модели NER
+
+Для обучения модели на размеченных данных выполните:
+
+```sh
+uv run -m scripts.run_ner --stage train
+```
+
+Модель будет обучаться на файлах `train.json` и `test.json` (создаются автоматически из размеченного датасета).
+
+#### 4. Извлечение сущностей из новых текстов
+
+Для применения обученной модели к новым данным:
+
+```sh
+uv run -m scripts.run_ner --stage extract
+```
+
+**Формат данных**
+Входные и выходные файлы для NER находятся в `data/ner/`:
+
+- `dataset_bio.json` — данные в формате BIO для обучения
+- `test.json`, `train.json` — разделённые датасеты
+- `ner_unannotated.json` — неразмеченные данные для разметки
+  Пример структуры данных:
+
+```json
+{
+  "tokens": ["This", "is", "VerseBridge"],
+  "labels": ["O", "O", "B-ORG"]
+}
+```
+
+**Конфигурация**
+
+- Основные параметры и пути задаются в `src/config/ner.py` и `src/config/paths.py`.
+- Веб-интерфейс для ревью разметки использует Streamlit.
+
+**Примечания**
+
+- Для корректной работы требуется предобработка (`--stage preprocess`).
+- Все логи сохраняются в папке `logs/`.
+
+---
+
+## Примеры CLI
+
+**Примечание:** используйте атрибут `--help` для получения справки по доступным аргументам
+
+### CLI перевода
 
 - обучение с LoRA:
 
@@ -159,42 +244,40 @@ uv run -m scripts.run_translation
 uv run -m scripts.run_training --with-lora
 ```
 
-- возобновить обучение с чекпоинта (если есть):
+- продолжить обучение с чекпоинта (если чекпоинт существует):
 
 ```sh
 uv run -m scripts.run_training --with-lora --model-path models/lora/checkpoints/checkpoints-100
 ```
 
-- обучение без LoRA на базовой модели:
+- обучение без LoRA на базовой модели
 
 ```sh
 uv run -m scripts.run_training
 ```
 
-**2. Перевод (run_translation.py)**
-
-- перевести все INI-файлы в исходной директории:
+- перевод всех INI-файлов в исходной директории:
 
 ```sh
-uv run -m scripts.run_translation --src-lang en --tgt-lang ru --translated_file_name translated.ini
+uv run -m scripts.run_translation --src-lang en --tgt-lang ru --translated-file-name translated.ini
 ```
 
-- перевести INI-файл из пользовательской директории:
+- перевод INI-файла из пользовательской директории:
 
 ```sh
-uv run -m scripts.run_translation --input-file data/global_original_test.ini
+uv run -m scripts.run_translation --input-file data/raw/global_original_test.ini
 ```
 
-- до-перевести существующий переведенный INI-файл:
+- повторный перевод уже переведённого INI-файла:
 
 ```sh
-uv run -m scripts.run_translation --input-file data/global_original_test.ini --existing-translated-file data/global_original_exist.ini
+uv run -m scripts.run_translation --input-file data/raw/global_original_test.ini --existing-translated-file data/global_original_exist.ini
 ```
 
-- до-перевести существующий переведенный INI-файл с приоритетом (если файлы с переводом уже существуют в целевой директории `translation_results`, они будут заменены строками из `existing-translated-file`):
+- повторный перевод с приоритетом (если переведённые файлы уже есть в директории назначения `translation_results`, они будут заменены строками из `existing-translated-file`):
 
 ```sh
-uv run -m scripts.run_translation --input-file data/global_original_test.ini --existing-translated-file data/global_original_exist.ini --translation-priority existing
+uv run -m scripts.run_translation --input-file data/raw/global_original_test.ini --existing-translated-file data/global_original_exist.ini
 ```
 
 - использовать дообученную модель для перевода:
@@ -209,14 +292,40 @@ uv run -m scripts.run_translation --model-path models/base_model/result
 uv run -m scripts.run_translation
 ```
 
+### CLI NER
+
+- Предобработка и извлечение сущностей:
+
+```sh
+uv run -m scripts.run_ner --stage preprocess
+```
+
+- Ручная разметка и ревью (Streamlit):
+
+```sh
+uv run -m scripts.run_ner --stage review
+```
+
+- Обучение модели NER:
+
+```sh
+uv run -m scripts.run_ner --stage train
+```
+
+- Извлечение сущностей из новых текстов:
+
+```sh
+uv run -m scripts.run_ner --stage extract
+```
+
 ## Вклад
 
-Если вы хотите внести вклад в проект, ознакомьтесь с [CONTRIBUTING](../CONTRIBUTING.md).
+Если вы хотите внести вклад в проект, пожалуйста, прочитайте [CONTRIBUTING](CONTRIBUTING.md).
 
 ## Лицензия
 
-- **Код**: MIT License ([LICENSE_CODE](../LICENSE_CODE))
-  <!-- TODO: Add if a training dataset created from translations will be added to the repository -->
-  <!-- - **Ru Translations**: Creative Commons BY-NC-SA 4.0 ([LICENSE_TRANSLATIONS](../LICENSE_TRANSLATIONS)) -->
+- **Код**: MIT License ([LICENSE_CODE](LICENSE_CODE))
+  <!-- TODO: Добавить, если датасет из переводов будет добавлен в репозиторий -->
+  <!-- - **Ru Translations**: Creative Commons BY-NC-SA 4.0 ([LICENSE_TRANSLATIONS](LICENSE_TRANSLATIONS)) -->
 
-**Cloud Imperium Games предоставлено специальное разрешение на неограниченное использование. См. [SPECIAL_PERMISSION](../SPECIAL_PERMISSION.md).**
+**Cloud Imperium Games предоставлено специальное разрешение на неограниченное использование. См. [SPECIAL_PERMISSION](SPECIAL_PERMISSION.md).**
