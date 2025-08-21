@@ -1,6 +1,6 @@
-from typing import List
 import torch
 from transformers import BatchEncoding
+from typing import List, Any, Optional
 
 from src.config import ConfigManager
 from src.type_defs import (
@@ -10,6 +10,7 @@ from src.type_defs import (
     TranslatorCallableType,
     INIFIleValueType,
     TranslatedIniValueType,
+    GeneratedKwargsType,
 )
 from src.utils import MemoryManager
 from .text_processor import TextProcessor
@@ -35,52 +36,57 @@ class Translator:
     def generate_translation(
         self,
         inputs: BatchEncoding,
-        target_lang_code: str,
-        max_model_length: int = 512,
-        min_tokens: int = 16,
-        scale_factor: float = 1.8,
-    ) -> str:
+        generated_kwargs: GeneratedKwargsType,
+    ) -> Any:
         if not self.model:
             self.logger.error("Model is not initialized")
             raise ValueError("Model must be initialized before generating translation")
 
-        inputs_length = inputs.input_ids.shape[1]  # type: ignore
-        max_new_tokens = int(min_tokens + scale_factor * inputs_length)  # type: ignore
-        min_len = int(inputs_length * 1.1) if inputs_length > 10 else None  # type: ignore
+        input_lengths = torch.sum(inputs.attention_mask, dim=1)  # type: ignore
+        max_input_length = torch.max(input_lengths).item()
+
+        max_model_length = generated_kwargs["max_model_length"]
+        min_tokens = generated_kwargs["min_tokens"]
+        scale_factor = generated_kwargs["scale_factor"]
+        target_lang_code = generated_kwargs["tgt_nllb_lang_code"]
+
+        max_new_tokens = max(
+            [int(min_tokens + scale_factor * l.item()) for l in input_lengths]
+        )
 
         # Check for exceeding the model limit
         # Should not happen normally, as `max_inputs_allowed` should prevent such cases
         # If, despite `max_inputs_allowed`, the number of tokens exceeds `max_model_length`,
         # then decrease max_new_tokens
-        total_length = max_new_tokens + inputs_length
+        total_lengths = [l + max_new_tokens for l in input_lengths]
 
-        if total_length > max_model_length:
+        if any(t > max_model_length for t in total_lengths):
             self.logger.warning(
-                f"Total length ({total_length}) exceeds model limit ({max_model_length}). Adjusting max_new_tokens."
+                f"Total length ({total_lengths}) exceeds model limit ({max_model_length}). Adjusting max_new_tokens."
             )
             max_new_tokens = (
                 max_model_length
-                - inputs_length
+                - max_input_length
                 - self.config.translation_config.token_reserve
             )
+
+        min_new_tokens = max(
+            1, int(max_input_length * 0.6)
+        )  # At least 60% of the input length
 
         try:
             with torch.no_grad(), torch.amp.autocast("cuda"):
                 translated_tokens = self.model.generate(
                     **inputs,  # type: ignore
                     max_new_tokens=max_new_tokens,
-                    min_new_tokens=min_len,  # type: ignore
+                    min_new_tokens=min_new_tokens,  # type: ignore
                     forced_bos_token_id=self.tokenizer.convert_tokens_to_ids(  # type: ignore
                         target_lang_code
                     ),
                     generation_config=self.config.generation_config.to_generation_config(),
                 )
 
-            generated_text = self.tokenizer.batch_decode(
-                translated_tokens, skip_special_tokens=True
-            )
-
-            return generated_text[0]
+            return translated_tokens
         except Exception as e:
             self.logger.error(f"Failed to generate translation: {str(e)}")
             raise
@@ -91,68 +97,104 @@ class Translator:
                 "Model and tokenizer must be initialized before creating translator"
             )
 
-        def translate(text: INIFIleValueType) -> TranslatedIniValueType:
-            self.tokenizer.src_lang = self.config.lang_config.src_nllb_lang_code
-            self.tokenizer.tgt_lang = self.config.lang_config.tgt_nllb_lang_code
+        src_nllb_lang_code = self.config.lang_config.src_nllb_lang_code
+        tgt_nllb_lang_code = self.config.lang_config.tgt_nllb_lang_code
+        src_lang = self.config.lang_config.src_lang
+        tgt_lang = self.config.lang_config.tgt_lang
 
-            src_lang = self.config.lang_config.src_lang
-            tgt_lang = self.config.lang_config.tgt_lang
+        tokenizer_args = self.config.dataset_config.to_dict()
+        max_model_length = tokenizer_args["max_length"]
 
-            tokenizer_args = self.config.dataset_config.to_dict()
-            max_model_length = tokenizer_args["max_length"]
+        min_tokens: int = self.config.translation_config.min_tokens
+        scale_factor: float = self.config.translation_config.get_scale_factor(
+            src_lang, tgt_lang
+        )
 
-            tokens = self.tokenizer(text, **tokenizer_args)
-            input_length = len(tokens["input_ids"][0])  # type: ignore
+        # The formula for `max_inputs_allowed` is calculated to limit the input text length, assuming that:
+        #     inputs_length + max_new_tokens = inputs_length + (min_tokens + scale_factor * inputs_length) = min_tokens + (1 + scale_factor) * inputs_length <= max_model_length
+        # From here:
+        #     inputs_length <= (max_model_length - min_tokens) / (1 + scale_factor)
 
-            min_tokens: int = self.config.translation_config.min_tokens
-            scale_factor: float = self.config.translation_config.get_scale_factor(
-                src_lang, tgt_lang
-            )
+        max_inputs_allowed = int((max_model_length - min_tokens) / (1 + scale_factor))
 
-            # The formula for `max_inputs_allowed` is calculated to limit the input text length, assuming that:
-            #     inputs_length + max_new_tokens = inputs_length + (min_tokens + scale_factor * inputs_length) = min_tokens + (1 + scale_factor) * inputs_length <= max_model_length
-            # From here:
-            #     inputs_length <= (max_model_length - min_tokens) / (1 + scale_factor)
-            max_inputs_allowed = int(
-                (max_model_length - min_tokens) / (1 + scale_factor)
-            )
+        generate_kwargs: GeneratedKwargsType = {
+            "max_model_length": max_model_length,
+            "min_tokens": min_tokens,
+            "scale_factor": scale_factor,
+            "tgt_nllb_lang_code": tgt_nllb_lang_code,
+        }
 
-            if input_length > max_inputs_allowed:
-                self.logger.debug(
-                    f"Text too long ({input_length} tokens), splitting..."
+        def translate(texts: List[INIFIleValueType]) -> List[TranslatedIniValueType]:
+            if not texts:
+                self.logger.warning(
+                    "Empty input text list provided, returning empty list"
                 )
+                return []
 
-                parts = self.text_processor.split_text(
-                    text, self.tokenizer, max_inputs_allowed, tokenizer_args
-                )
+            self.tokenizer.src_lang = src_nllb_lang_code
+            self.tokenizer.tgt_lang = tgt_nllb_lang_code
 
-                translated_parts: List[str] = []
+            try:
+                batch_tokens = self.tokenizer(texts, **tokenizer_args).to(self.device)
+                input_lengths = [
+                    len(ids) for ids in batch_tokens["input_ids"]  # type:ignore
+                ]
+            except Exception as e:
+                self.logger.error(f"Tokenization failed: {str(e)}")
+                raise
 
-                for part in parts:
-                    inputs = self.tokenizer(part, **tokenizer_args)
-                    inputs = inputs.to(self.device)
+            translated_texts: List[Optional[str]] = [None] * len(texts)
+            batch_texts: List[str] = []
+            batch_indices: List[int] = []
 
-                    translated_part = self.generate_translation(
-                        inputs,
-                        self.config.lang_config.tgt_nllb_lang_code,
-                        max_model_length,
-                        min_tokens,
-                        scale_factor,
+            for i, text in enumerate(texts):
+                input_length = input_lengths[i]
+
+                if input_length > max_inputs_allowed:
+                    self.logger.debug(
+                        f"Text {i} too long ({input_length} tokens), splitting..."
                     )
 
-                    translated_parts.append(translated_part.strip())
+                    parts = self.text_processor.split_text(
+                        text, self.tokenizer, max_inputs_allowed, tokenizer_args
+                    )
 
-                translated_text = " ".join(translated_parts)
-            else:
-                inputs = tokens.to(self.device)
-                translated_text = self.generate_translation(
-                    inputs,
-                    self.config.lang_config.tgt_nllb_lang_code,
-                    max_model_length,
-                    min_tokens,
-                    scale_factor,
+                    part_translations: List[str] = []
+
+                    for part in parts:
+                        part_tokens = self.tokenizer(part, **tokenizer_args).to(
+                            self.device
+                        )
+
+                        translated_part = self.generate_translation(
+                            part_tokens, generate_kwargs
+                        )
+
+                        translated_text = self.tokenizer.batch_decode(
+                            translated_part, skip_special_tokens=True
+                        )[0]
+
+                        part_translations.append(translated_text.strip())
+
+                    translated_texts.append(" ".join(part_translations))
+                else:
+                    batch_texts.append(text)
+                    batch_indices.append(i)
+
+            if batch_texts:
+                batch_tokens = self.tokenizer(batch_texts, **tokenizer_args).to(
+                    self.device
                 )
 
-            return translated_text.strip()
+                batch_outputs = self.generate_translation(batch_tokens, generate_kwargs)
+
+                decoded_batch = self.tokenizer.batch_decode(
+                    batch_outputs, skip_special_tokens=True
+                )
+
+                for idx, result in zip(batch_indices, decoded_batch):
+                    translated_texts[idx] = result.strip()
+
+            return [text for text in translated_texts if text is not None]
 
         return translate

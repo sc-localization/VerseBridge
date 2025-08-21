@@ -192,11 +192,21 @@ TranslatedFileNameType = Optional[str]
 
 BufferType: TypeAlias = List[TranslatedIniLineType]
 
-TranslatorCallableType: TypeAlias = Callable[[str], str]
+TranslatorCallableType: TypeAlias = Callable[
+    [List[INIFIleValueType]], List[TranslatedIniValueType]
+]
 
 AppTaskType: TypeAlias = Literal["ner", "translation"]  # TODO: use enum if posible
 CharToTokenType: TypeAlias = List[Tuple[int, int]]
 AggregationStrategyType: TypeAlias = Literal["simple", "average", "max", "none"]
+
+
+class GeneratedKwargsType(TypedDict):
+    max_model_length: int
+    min_tokens: int
+    scale_factor: float
+    tgt_nllb_lang_code: str
+
 
 class TranslationTrainingConfigType(TypedDict):
     logging_dir: str
@@ -349,3 +359,7 @@ def is_ini_file_line(line: Any) -> TypeGuard[IniLineType]:
         return False
 
     return True
+
+
+def is_list_of_ner_patterns(obj: Any) -> TypeGuard[JSONNERListType]:
+    return isinstance(obj, list) and all(isinstance(x, str) for x in obj)
