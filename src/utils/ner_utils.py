@@ -1,5 +1,6 @@
 import re
-from venv import logger
+import nltk
+from nltk.corpus import stopwords
 from tqdm import tqdm
 from typing import List, Set
 from pathlib import Path
@@ -7,6 +8,8 @@ from pathlib import Path
 
 from src.utils import FileUtils
 from src.type_defs import LoggerType, is_json_data_ner_list_type
+
+nltk.download("stopwords", quiet=True)
 
 
 class NerUtils:
@@ -28,7 +31,7 @@ class NerUtils:
         Returns:
             Set[str]: Set of unique NER entities (actual text values).
         """
-        file_utils = FileUtils(logger=logger)
+        file_utils = FileUtils(logger=self.logger)
         entities: Set[str] = set()
 
         selected_file = corrected_file_path
@@ -84,10 +87,22 @@ class NerUtils:
 
                     if 0 <= start <= end <= len(text):
                         entity_text = text[start:end].strip()
+                        # Cleaning from punctuation at the beginning and end, as well as an apostrophe,
+                        # if the named entity contains them (incorrect dataset annotation)
+                        # UEE's -> UEE
+                        cleaned_entity_text = (
+                            re.sub(r"^[^\w\s]+|[^\w\s]+$", "", entity_text)
+                            .replace("'", "")
+                            .strip()
+                        )
 
-                        if entity_text:
-                            entities.add(entity_text)
-                        else:
+                        if cleaned_entity_text.lower() in stopwords.words("english"):
+                            self.logger.debug(f"Skipping excluded word: {entity_text}")
+                            continue
+
+                        if cleaned_entity_text not in entities:
+                            entities.add(cleaned_entity_text)
+                        elif not cleaned_entity_text:
                             self.logger.warning(
                                 f"Empty entity for start={start}, end={end}, label={label} in {selected_file}"
                             )
@@ -125,22 +140,14 @@ class NerUtils:
         patterns: List[str] = []
 
         for entity in sorted(entities, key=len, reverse=True):
-            if "," in entity and not any(
-                c in entity for c in "()[]{}"
-            ):  # Exclude cases like "(R.A.P.T.O.R.)"
-                sub_entities = [e.strip() for e in entity.split(",") if e.strip()]
+            escaped = re.escape(entity)
+            # Add word boundaries, but only if the entity does not contain tags or special symbols
+            if not any(c in entity for c in "<>[]{}%~"):
+                pattern = r"\b" + escaped + r"\b"
             else:
-                sub_entities = [entity]
+                pattern = escaped
 
-            for sub_entity in sub_entities:
-                escaped = re.escape(sub_entity)
-                # Add word boundaries, but only if the entity does not contain tags or special symbols
-                if not any(c in sub_entity for c in "<>[]{}%~"):
-                    pattern = r"\b" + escaped + r"\b"
-                else:
-                    pattern = escaped
-
-                patterns.append(pattern)
+            patterns.append(pattern)
 
         self.logger.info(f"Generated {len(patterns)} NER patterns")
 
