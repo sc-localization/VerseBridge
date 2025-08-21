@@ -164,6 +164,7 @@ JSONHelpStringsDictType = HelpStringsLangType
 JSONDataTranslationListType: TypeAlias = List[JSONDataTranslationType]
 JSONDataNERListType: TypeAlias = List[JSONDataNERType]
 JSONDataConvertedToBIOListType: TypeAlias = List[JSONConvertedToBIOType]
+JSONNERListType: TypeAlias = List[str]
 
 
 LoadedJSONType: TypeAlias = (
@@ -171,6 +172,7 @@ LoadedJSONType: TypeAlias = (
     | JSONDataTranslationListType
     | JSONDataNERListType
     | JSONDataConvertedToBIOListType
+    | JSONNERListType
 )
 
 CleanedINIFIleValueType: TypeAlias = INIFIleValueType
