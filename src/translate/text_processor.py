@@ -1,17 +1,18 @@
 import nltk
 import re
 from nltk.tokenize import sent_tokenize
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Tuple
 from transformers import PreTrainedTokenizerBase
 
+from src.config import ConfigManager
 from src.type_defs import (
-    ProtectedPatternsType,
     PlaceholdersType,
     TranslatorCallableType,
     INIFIleValueType,
     TranslatedIniValueType,
     LoggerType,
     TokenizerConfigType,
+    JSONNERListType,
 )
 
 nltk.download("punkt_tab", quiet=True)
@@ -20,42 +21,53 @@ nltk.download("punkt_tab", quiet=True)
 class TextProcessor:
     def __init__(
         self,
-        protected_patterns: ProtectedPatternsType,
+        config: ConfigManager,
         logger: LoggerType,
     ):
-        self.protected_pattern = re.compile("|".join(protected_patterns), re.UNICODE)
+        self.config = config
         self.logger = logger
+        self.translation_config = self.config.translation_config
+        protected_patterns = self.translation_config.protected_patterns
+
+        self.protected_pattern = re.compile("|".join(protected_patterns), re.UNICODE)
 
     def _protect_patterns(
-        self, text: INIFIleValueType, ner_patterns: Optional[List[str]] = None
-    ) -> Tuple[INIFIleValueType, PlaceholdersType, PlaceholdersType]:
+        self, text: INIFIleValueType, ner_patterns: Optional[JSONNERListType] = None
+    ) -> Tuple[INIFIleValueType, INIFIleValueType, PlaceholdersType, PlaceholdersType]:
         """
         Protects both protected patterns and NER entities with unique placeholders.
 
         Args:
-            text (str): Input text.
-            ner_patterns (Optional[List[str]]): Regex patterns for NER entities.
+            text (INIFIleValueType): Input text.
+            ner_patterns (JSONNERListType): Regex patterns for NER entities.
 
         Returns:
-            Tuple[str, Dict[str, str], Dict[str, str]]: Modified text, protected placeholders, NER placeholders.
+            Tuple[INIFIleValueType, INIFIleValueType, Dict[str, str], Dict[str, str]]: Modified text, protected placeholders, NER placeholders.
         """
         protected_placeholders: PlaceholdersType = {}
         ner_placeholders: PlaceholdersType = {}
-        modified_text = text
+
+        context_text = text
+        full_text = text
 
         # Step 1: Protect protected patterns
         if self.protected_pattern:
-
-            def _replace_protected_match(match: re.Match[str]) -> str:
-                match_value = match.group(0)
-                key = f"[PP_{len(protected_placeholders)}]"
-                protected_placeholders[key] = match_value
-                self.logger.debug(f"Protected pattern: {match_value} -> {key}")
-                return key
-
             try:
-                modified_text = self.protected_pattern.sub(
-                    _replace_protected_match, modified_text
+
+                def _replace_protected_match(match: re.Match[str]) -> str:
+                    match_value = match.group(0)
+                    key = self.translation_config.get_p_template(
+                        len(protected_placeholders)
+                    )
+                    protected_placeholders[key] = match_value
+
+                    return key
+
+                context_text = self.protected_pattern.sub(
+                    _replace_protected_match, context_text
+                )
+                full_text = self.protected_pattern.sub(
+                    _replace_protected_match, full_text
                 )
             except re.error as e:
                 self.logger.error(f"Error applying protected pattern: {e}")
@@ -68,35 +80,46 @@ class TextProcessor:
 
                 def _replace_ner_match(match: re.Match[str]) -> str:
                     match_value = match.group(0)
-                    # Check if the match is already a placeholder
-                    if re.match(r"\[PP_\d+\]", match_value):
+
+                    if re.fullmatch(self.translation_config.get_p_regex(), match_value):
                         self.logger.debug(
                             f"Skipping NER match as it is a protected placeholder: {match_value}"
                         )
-
                         return match_value
 
-                    key = f"[NER_{len(ner_placeholders)}]"
+                    if re.fullmatch(
+                        self.translation_config.get_ner_regex(), match_value
+                    ):
+                        self.logger.debug(
+                            f"Skipping NER match as it is a newline placeholder: {match_value}"
+                        )
+                        return match_value
+
+                    key = self.translation_config.get_ner_template(
+                        len(ner_placeholders)
+                    )
                     ner_placeholders[key] = match_value
 
                     return key
 
-                modified_text = ner_pattern.sub(_replace_ner_match, modified_text)
+                context_text = ner_pattern.sub(_replace_ner_match, context_text)
             except re.error as e:
                 self.logger.error(f"Error compiling NER pattern: {e}")
                 raise
 
         # Step 3: Protect newlines
-        modified_text = modified_text.replace("\\n", "[NL]")
+        context_text = context_text.replace(
+            "\\n", self.translation_config.get_nl_template(0)
+        )
+        full_text = full_text.replace("\\n", self.translation_config.get_nl_template(0))
 
-        return modified_text, protected_placeholders, ner_placeholders
+        return context_text, full_text, protected_placeholders, ner_placeholders
 
     def _restore_patterns(
         self,
         translated_text: TranslatedIniValueType,
         protected_placeholders: PlaceholdersType,
         ner_placeholders: PlaceholdersType,
-        ner_translations: Optional[Dict[str, str]] = None,
     ) -> TranslatedIniValueType:
         """
         Restores protected and NER placeholders. NER can be restored as originals or translated.
@@ -105,7 +128,6 @@ class TextProcessor:
             translated_text (str): Translated text with placeholders.
             protected_placeholders (Dict[str, str]): Protected pattern placeholders.
             ner_placeholders (Dict[str, str]): NER placeholders.
-            ner_translations (Optional[Dict[str, str]]): Translations for NER (None for context version).
 
         Returns:
             str: Text with placeholders restored.
@@ -114,20 +136,14 @@ class TextProcessor:
 
         # Step 1: Restore NER placeholders (to handle potential overlaps first)
         for key, original in ner_placeholders.items():
-            value = (
-                ner_translations.get(original, original)
-                if ner_translations
-                else original
-            )
-
-            result = re.sub(re.escape(key), value, result)
+            result = re.sub(re.escape(key), original, result)
 
         # Step 2: Restore protected placeholders
         for key, value in protected_placeholders.items():
             result = re.sub(re.escape(key), value, result)
 
         # Step 3: Restore newlines
-        result = result.replace("[NL]", "\\n")
+        result = result.replace(self.translation_config.get_nl_template(0), "\\n")
 
         return result
 
@@ -166,7 +182,16 @@ class TextProcessor:
                 )
             ]
 
-        sentences: List[str] = sent_tokenize(text)
+        nl_placeholder = self.translation_config.get_nl_template(0)
+        paragraph_separator = f"{nl_placeholder}{nl_placeholder}"
+
+        sentences: List[str] = []
+        paragraphs = text.split(paragraph_separator)
+
+        for paragraph in paragraphs:
+            if paragraph.strip():
+                sentences.extend(sent_tokenize(paragraph.strip(nl_placeholder)))
+
         chunks: List[str] = []
         current_chunk: str = ""
 
@@ -204,17 +229,15 @@ class TextProcessor:
         self,
         text: INIFIleValueType,
         translator: TranslatorCallableType,
-        ner_patterns: Optional[List[str]] = None,
-        ner_cache: Optional[Dict[str, str]] = None,
+        ner_patterns: JSONNERListType,
     ) -> Tuple[TranslatedIniValueType, TranslatedIniValueType]:
         """
         Translates text, returning both context (NER protected) and full (NER translated) versions.
 
         Args:
-            text (str): Input text.
+            text (INIFIleValueType): Input text.
             translator (TranslatorCallableType): Translator function.
-            ner_patterns (Optional[List[str]]): Patterns for NER protection.
-            ner_cache (Optional[Dict[str, str]]): Cache for NER translations.
+            ner_patterns (JSONNERListType): Patterns for NER protection.
 
         Returns:
             Tuple[str, str]: (context_version, full_version)
@@ -222,29 +245,24 @@ class TextProcessor:
         if not text:
             return text, text
 
-        # Step 1: Protect both patterns
-        modified_text, protected_placeholders, ner_placeholders = (
+        context_text, full_text, protected_placeholders, ner_placeholders = (
             self._protect_patterns(text, ner_patterns)
         )
 
-        # Step 2: Translate the modified text (once)
-        translated_text = translator(modified_text)
+        batch_texts = [context_text, full_text]  # Order: context first, full second
+        batch_translated = translator(batch_texts)
 
-        # Step 3: Restore for context (NER unchanged)
+        if len(batch_translated) != 2:
+            self.logger.error(f"Expected 2 translations, got {len(batch_translated)}")
+            raise ValueError(f"Expected 2 translations")
+
+        context_translated_text, full_translated_text = batch_translated
+
         context_version = self._restore_patterns(
-            translated_text, protected_placeholders, ner_placeholders
+            context_translated_text, protected_placeholders, ner_placeholders
         )
-
-        # Step 4: Restore for full (translate NER)
-        ner_translations: Dict[str, str] = ner_cache or {}
-
-        for original in ner_placeholders.values():
-            if original not in ner_translations:
-                translated_ner = translator(original)
-                ner_translations[original] = translated_ner
-
         full_version = self._restore_patterns(
-            translated_text, protected_placeholders, ner_placeholders, ner_translations
+            full_translated_text, protected_placeholders, {}
         )
 
         return context_version, full_version
