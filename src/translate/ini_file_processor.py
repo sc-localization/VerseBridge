@@ -308,11 +308,25 @@ class IniFileProcessor:
             translation_result_file.stem + "_full.ini"
         )
 
-        ner_patterns = self.ner_utils.get_ner_patterns(
-            self.config.ner_path_config.corrected_streamlit_data_path,
-            self.config.ner_path_config.extracted_ner_data_path,
-        )
-        ner_cache: Dict[str, str] = {}  # Global cache for ner
+        ner_patterns_path = self.config.ner_path_config.ner_patterns_path
+
+        if ner_patterns_path.exists():
+            self.logger.info(f"Loading cached NER patterns from {ner_patterns_path}")
+            ner_patterns = self.file_utils.load_json(ner_patterns_path)
+        else:
+            self.logger.info("Extracting NER patterns (first run)")
+            ner_patterns = self.ner_utils.get_ner_patterns(
+                self.config.ner_path_config.corrected_streamlit_data_path,
+                self.config.ner_path_config.extracted_ner_data_path,
+            )
+
+            self.file_utils.save_json(ner_patterns, ner_patterns_path)
+            self.logger.info(
+                f"Saved NER patterns to {ner_patterns_path} for future use"
+            )
+
+        if not is_list_of_ner_patterns(ner_patterns):
+            raise TypeError("NER patterns must be a list of strings")
 
         with (
             BufferedFileWriter(

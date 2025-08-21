@@ -76,8 +76,8 @@ class TranslationPathConfig(BasePathConfig):
         self.translation_dir = self.get_translation_results_dir_by_lang(
             self.src_lang, self.tgt_lang
         )
-        self.translation_src_dir=self.translation_dir / self.src_lang.value
-        self.translation_dest_dir=self.translation_dir / self.tgt_lang.value
+        self.translation_src_dir = self.translation_dir / self.src_lang.value
+        self.translation_dest_dir = self.translation_dir / self.tgt_lang.value
 
         # Initialize input_file_path
         if self.input_file is None:
@@ -166,6 +166,8 @@ class NERPathConfig(BasePathConfig):
     output_dir: Path = field(init=False)
     logging_dir: Path = field(init=False)
 
+    ner_patterns_path: Path = field(init=False)
+
     def __post_init__(self) -> None:
         super().__post_init__()
 
@@ -188,6 +190,8 @@ class NERPathConfig(BasePathConfig):
 
         self.output_dir = self.models_dir / "ner_output"
         self.logging_dir = self.logging_dir / "ner_logs"
+
+        self.ner_patterns_path = ner_data_dir / "ner_patterns.json"
 
         # Initialize input_file_path
         if self.input_file is None:
