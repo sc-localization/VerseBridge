@@ -1,6 +1,6 @@
 from pathlib import Path
 from tqdm import tqdm
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Optional, Set, Tuple
 
 
 from src.config import ConfigManager
@@ -14,6 +14,8 @@ from src.type_defs import (
     INIFIleValueType,
     TranslatedIniLineType,
     is_ini_file_line,
+    is_list_of_ner_patterns,
+    JSONNERListType,
 )
 from .text_processor import TextProcessor
 from .buffered_file_writer import BufferedFileWriter
@@ -67,8 +69,7 @@ class IniFileProcessor:
         exclude_keys: ExcludeKeysType,
         missing_keys: Set[INIFIleKeyType],
         untranslated_keys: Set[INIFIleKeyType],
-        ner_patterns: List[str],
-        ner_cache: Dict[str, str],
+        ner_patterns: JSONNERListType,
     ) -> Tuple[TranslatedIniLineType, TranslatedIniLineType]:
         """
         Processes a line, returning both context and full versions.
@@ -81,8 +82,7 @@ class IniFileProcessor:
             exclude_keys (ExcludeKeysType): A tuple of keys to exclude from translation.
             missing_keys (Set[str]): Keys present in input but not in output or existing items.
             untranslated_keys (Set[str]): Keys with untranslated values in existing items.
-            ner_patterns (Optional[List[str]]): Patterns for NER protection.
-            ner_cache (Optional[Dict[str, str]]): Cache for NER translations.
+            ner_patterns (JSONNERListType): Patterns for NER protection.
 
 
         Returns:
@@ -92,9 +92,8 @@ class IniFileProcessor:
         if self._should_translate(
             key, value, exclude_keys, missing_keys, untranslated_keys
         ):
-
             context_value, full_value = self.text_processor.translate_text(
-                value, translator, ner_patterns, ner_cache
+                value, translator, ner_patterns
             )
 
         else:
@@ -353,7 +352,6 @@ class IniFileProcessor:
                     missing_keys,
                     untranslated_keys,
                     ner_patterns,
-                    ner_cache,
                 )
 
                 context_writer.write(context_line)
