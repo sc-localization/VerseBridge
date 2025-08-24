@@ -324,7 +324,7 @@ If you would like to contribute to the project, please read [CONTRIBUTING](CONTR
 
 ## License
 
-- **Code**: MIT License ([LICENSE_CODE](LICENSE_CODE))
+- **Code**: MIT License ([LICENSE_CODE](LICENSE))
   <!-- TODO: Add if a training dataset created from translations will be added to the repository -->
   <!-- - **Ru Translations**: Creative Commons BY-NC-SA 4.0 ([LICENSE_TRANSLATIONS](LICENSE_TRANSLATIONS)) -->
 
