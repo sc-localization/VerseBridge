@@ -9,17 +9,16 @@ from src.type_defs import (
 
 @dataclass
 class TranslationConfig:
-    buffer_size: int = 50
+    buffer_size: int = 50 # Number of lines for writing translations to file
 
-    min_tokens: int = 16
-    length_scale_factors = {
+    length_language_ratio = {
         (
             "en",
             "ru",
         ): 1.5,  # English → Russian: text is usually longer. Or you can get it from ~ len(translated_tokens) / len(source_tokens)
         # Add other pairs as needed and select the coefficient based on the translation quality obtained
     }
-    token_reserve: int = 10
+    token_reserve: int = 20 # Reserve for BOS/EOS/special tokens
 
     exclude_keys: ExcludeKeysType = field(
         default_factory=lambda: (
@@ -77,5 +76,5 @@ class TranslationConfig:
         return re.escape(template).replace("0", r"\d+")
 
     @classmethod
-    def get_scale_factor(cls, src_lang: str, tgt_lang: str):
-        return cls.length_scale_factors.get((src_lang, tgt_lang), 1.0)
+    def get_language_ratio(cls, src_lang: str, tgt_lang: str):
+        return cls.length_language_ratio.get((src_lang, tgt_lang), 1.0)
