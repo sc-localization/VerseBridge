@@ -11,7 +11,7 @@ from src.type_defs import (
 class TranslationConfig:
     buffer_size: int = 50  # Number of lines for writing translations to file
 
-    length_language_ratio = {
+    _length_language_ratio = {
         (
             "en",
             "ru",
@@ -77,4 +77,4 @@ class TranslationConfig:
 
     @classmethod
     def get_language_ratio(cls, src_lang: str, tgt_lang: str):
-        return cls.length_language_ratio.get((src_lang, tgt_lang), 1.0)
+        return cls._length_language_ratio.get((src_lang, tgt_lang), 1.0)
