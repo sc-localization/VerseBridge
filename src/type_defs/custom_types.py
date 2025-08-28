@@ -34,8 +34,8 @@ class LangCode(str, Enum):
 
 
 class MappedCode(str, Enum):
-    ENG_LATN = "eng_Latn"
-    RUS_CYRL = "rus_Cyrl"
+    ENG_LATN = f"<2{LangCode.EN.value}>"
+    RUS_CYRL = f"<2{LangCode.RU.value}>"
 
 
 LangMapType = Dict[LangCode, MappedCode]
@@ -178,7 +178,7 @@ LoadedJSONType: TypeAlias = (
 CleanedINIFIleValueType: TypeAlias = INIFIleValueType
 
 
-TranslationModelNameType: TypeAlias = Literal["facebook/nllb-200-distilled-1.3B"]
+TranslationModelNameType: TypeAlias = Literal["google/madlad400-3b-mt"]
 NerModelNameType: TypeAlias = Literal["Jean-Baptiste/roberta-large-ner-english"]
 ModelPathType: TypeAlias = str
 ModelCLIType: TypeAlias = Optional[ModelPathType]
@@ -203,7 +203,6 @@ AggregationStrategyType: TypeAlias = Literal["simple", "average", "max", "none"]
 
 class CachedParamsType(TypedDict):
     max_model_length: int
-    tgt_nllb_lang_code: str
     token_reserve: int
 
 
