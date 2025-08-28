@@ -201,11 +201,10 @@ CharToTokenType: TypeAlias = List[Tuple[int, int]]
 AggregationStrategyType: TypeAlias = Literal["simple", "average", "max", "none"]
 
 
-class GeneratedKwargsType(TypedDict):
+class CachedParamsType(TypedDict):
     max_model_length: int
-    min_tokens: int
-    scale_factor: float
     tgt_nllb_lang_code: str
+    token_reserve: int
 
 
 class TranslationTrainingConfigType(TypedDict):

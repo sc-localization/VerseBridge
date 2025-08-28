@@ -91,13 +91,14 @@ class TextProcessor:
                         self.translation_config.get_ner_regex(), match_value
                     ):
                         self.logger.debug(
-                            f"Skipping NER match as it is a newline placeholder: {match_value}"
+                            f"Skipping NER match as it is a existing placeholder: {match_value}"
                         )
                         return match_value
 
                     key = self.translation_config.get_ner_template(
                         len(ner_placeholders)
                     )
+
                     ner_placeholders[key] = match_value
 
                     return key
@@ -108,10 +109,9 @@ class TextProcessor:
                 raise
 
         # Step 3: Protect newlines
-        context_text = context_text.replace(
-            "\\n", self.translation_config.get_nl_template(0)
-        )
-        full_text = full_text.replace("\\n", self.translation_config.get_nl_template(0))
+        nl_key = self.translation_config.get_nl_template()
+        context_text = context_text.replace("\\n", nl_key)
+        full_text = full_text.replace("\\n", nl_key)
 
         return context_text, full_text, protected_placeholders, ner_placeholders
 
@@ -143,7 +143,7 @@ class TextProcessor:
             result = re.sub(re.escape(key), value, result)
 
         # Step 3: Restore newlines
-        result = result.replace(self.translation_config.get_nl_template(0), "\\n")
+        result = result.replace(self.translation_config.get_nl_template(), "\\n")
 
         return result
 
@@ -157,56 +157,104 @@ class TextProcessor:
         max_depth: int = 5,
     ) -> List[str]:
         """
-        Splits a given text into chunks that will not exceed the maximum number of tokens.
-
-        Args:
-            text (str): Input text.
-            tokenizer (PreTrainedTokenizerBase): A tokenizer to use for counting tokens.
-            max_tokens (int): The maximum number of tokens in a chunk.
-
-        Returns:
-            List[str]: A list of chunks.
+        Splits a text into chunks.
+        1. Tries to split by sentences first.
+        2. If a chunk is too long, it tries to split it further using custom rules,
+           and then intelligently merges the resulting small parts.
         """
-
-        if depth > max_depth:
+        if depth >= max_depth:
             self.logger.warning(
                 f"Max split depth {max_depth} reached. Truncating text."
             )
 
-            tokens = tokenizer(text, **tokenizer_args)
+            sentence_tokens = tokenizer(text, **tokenizer_args)
+            truncated_ids = sentence_tokens["input_ids"][0][:max_tokens]  # type: ignore
 
-            return [
-                tokenizer.decode(
-                    tokens["input_ids"][0][:max_tokens],  # type:ignore
-                    skip_special_tokens=True,
+            chunk = tokenizer.decode(truncated_ids, skip_special_tokens=True)
+
+            # Iteratively trim if re-tokenized exceeds
+            while True:
+                check_tokens = tokenizer(chunk, **tokenizer_args)
+
+                if len(check_tokens["input_ids"][0]) <= max_tokens:  # type: ignore
+                    break
+
+                # Trim last 1-5% of text (find last space to avoid mid-word)
+                trim_pos = int(len(chunk) * 0.95)
+
+                chunk = (
+                    chunk[: chunk.rfind(" ", 0, trim_pos)]
+                    if " " in chunk
+                    else chunk[:-10]
                 )
-            ]
 
-        nl_placeholder = self.translation_config.get_nl_template(0)
-        paragraph_separator = f"{nl_placeholder}{nl_placeholder}"
+                self.logger.debug(f"Trimming further: new length {len(chunk)}")
 
-        sentences: List[str] = []
-        paragraphs = text.split(paragraph_separator)
-
-        for paragraph in paragraphs:
-            if paragraph.strip():
-                sentences.extend(sent_tokenize(paragraph.strip(nl_placeholder)))
+            return [chunk]
 
         chunks: List[str] = []
+
+        if depth == 0:
+            sentences: List[str] = sent_tokenize(text)
+            self.logger.debug(
+                f"Splitting by sentences on initial call (depth={depth})."
+            )
+        else:
+            split_pattern = r"(?:[NL][NL]|;|\.|!|\?)"
+            custom_splits = re.split(split_pattern, text)
+            prioritized_sentences = [
+                part.strip() for part in custom_splits if part.strip()
+            ]
+
+            if len(prioritized_sentences) > 1:
+                sentences_to_process: List[str] = []
+                current_merged_part: str = ""
+
+                for part in prioritized_sentences:
+                    prospective_part = (f"{current_merged_part} {part}").strip()
+                    token_len = len(
+                        tokenizer(prospective_part, **tokenizer_args)[
+                            "input_ids"
+                        ][  # type:ignore
+                            0
+                        ]
+                    )
+
+                    if token_len <= max_tokens:
+                        current_merged_part = prospective_part
+                    else:
+                        if current_merged_part:
+                            sentences_to_process.append(current_merged_part)
+
+                        current_merged_part = part
+
+                if current_merged_part:
+                    sentences_to_process.append(current_merged_part)
+
+                sentences = sentences_to_process
+
+                self.logger.debug(f"Custom splitting and merging at depth {depth}.")
+            else:
+                sentences = sent_tokenize(text)
+
+                self.logger.debug(
+                    f"Custom split failed at depth {depth}, falling back to sentence tokenization."
+                )
+
         current_chunk: str = ""
 
         for sentence in sentences:
             prospective_chunk = (
                 f"{current_chunk} {sentence}".strip() if current_chunk else sentence
             )
-            tokens = tokenizer(prospective_chunk, **tokenizer_args)
-            token_len = len(tokens["input_ids"][0])  # type:ignore
 
-            if token_len > max_tokens:
+            sentence_tokens = tokenizer(prospective_chunk, **tokenizer_args)
+            sentence_token_len = len(sentence_tokens["input_ids"][0])  # type:ignore
+
+            if sentence_token_len > max_tokens:
                 if current_chunk:
                     chunks.append(current_chunk.strip())
 
-                # sentence too long → try recursively splitting it
                 sub_chunks = self.split_text(
                     sentence,
                     tokenizer,
@@ -215,6 +263,7 @@ class TextProcessor:
                     depth + 1,
                     max_depth,
                 )
+
                 chunks.extend(sub_chunks)
                 current_chunk = ""
             else:
@@ -222,6 +271,19 @@ class TextProcessor:
 
         if current_chunk:
             chunks.append(current_chunk.strip())
+
+        # Проверка итоговых чанков
+        for chunk in chunks:
+            chunk_tokens = len(
+                tokenizer(chunk, **tokenizer_args)["input_ids"][0]  # type:ignore
+            )
+
+            if chunk_tokens > max_tokens:
+                self.logger.error(
+                    f"Chunk exceeds max_tokens: {chunk_tokens} > {max_tokens}"
+                )
+
+                raise ValueError(f"Split chunk too large: {chunk_tokens} tokens")
 
         return chunks
 
@@ -249,14 +311,14 @@ class TextProcessor:
             self._protect_patterns(text, ner_patterns)
         )
 
-        batch_texts = [context_text, full_text]  # Order: context first, full second
-        batch_translated = translator(batch_texts)
+        texts = [context_text, full_text]  # Order: context first, full second
+        translated_texts = translator(texts)
 
-        if len(batch_translated) != 2:
-            self.logger.error(f"Expected 2 translations, got {len(batch_translated)}")
+        if len(translated_texts) != 2:
+            self.logger.error(f"Expected 2 translations, got {len(translated_texts)}")
             raise ValueError(f"Expected 2 translations")
 
-        context_translated_text, full_translated_text = batch_translated
+        context_translated_text, full_translated_text = translated_texts
 
         context_version = self._restore_patterns(
             context_translated_text, protected_placeholders, ner_placeholders
