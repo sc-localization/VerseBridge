@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 from transformers import AutoTokenizer
 
 from src.config import ConfigManager
-from src.preprocess.json_cleaner import JsonCleaner
+from src.preprocess.text_cleaner import TextCleaner
 
 
 @pytest.fixture
@@ -12,8 +12,8 @@ def tokenizer():
 
 
 @pytest.fixture
-def json_cleaner(tokenizer):
-    return JsonCleaner(
+def text_cleaner(tokenizer):
+    return TextCleaner(
         tokenizer=tokenizer,
         protected_patterns=ConfigManager().translation_config.protected_patterns,
         max_model_length=512,
@@ -76,8 +76,8 @@ def json_cleaner(tokenizer):
         ("   ", False, ""),
     ],
 )
-def test_clean_text(json_cleaner, input_text, remove_patterns, expected):
-    assert json_cleaner.clean_text(input_text, remove_patterns) == expected
+def test_clean_text(text_cleaner, input_text, remove_patterns, expected):
+    assert text_cleaner.clean_text(input_text, remove_patterns) == expected
 
 
 @pytest.mark.parametrize(
@@ -115,9 +115,9 @@ def test_clean_text(json_cleaner, input_text, remove_patterns, expected):
         ),
     ],
 )
-def test_clean_text_complex(json_cleaner, input_text, remove_patterns, expected):
+def test_clean_text_complex(text_cleaner, input_text, remove_patterns, expected):
     assert (
-        json_cleaner.clean_text(input_text, remove_patterns).strip() == expected.strip()
+        text_cleaner.clean_text(input_text, remove_patterns).strip() == expected.strip()
     )
 
 
@@ -134,8 +134,8 @@ def test_clean_text_complex(json_cleaner, input_text, remove_patterns, expected)
         ("test", "", False),  # empty target_text
     ],
 )
-def test_contains_foreign_words_basic(json_cleaner, source_text, target_text, expected):
-    assert json_cleaner.contains_foreign_words(source_text, target_text) == expected
+def test_contains_foreign_words_basic(text_cleaner, source_text, target_text, expected):
+    assert text_cleaner.contains_foreign_words(source_text, target_text) == expected
 
 
 @pytest.mark.parametrize(
@@ -152,9 +152,9 @@ def test_contains_foreign_words_basic(json_cleaner, source_text, target_text, ex
     ],
 )
 def test_contains_foreign_words_complex(
-    json_cleaner, source_text, target_text, expected
+    text_cleaner, source_text, target_text, expected
 ):
-    assert json_cleaner.contains_foreign_words(source_text, target_text) == expected
+    assert text_cleaner.contains_foreign_words(source_text, target_text) == expected
 
 
 @pytest.mark.parametrize(
@@ -170,9 +170,9 @@ def test_contains_foreign_words_complex(
     ],
 )
 def test_contains_foreign_words_edge_cases(
-    json_cleaner, source_text, target_text, expected
+    text_cleaner, source_text, target_text, expected
 ):
-    assert json_cleaner.contains_foreign_words(source_text, target_text) == expected
+    assert text_cleaner.contains_foreign_words(source_text, target_text) == expected
 
 
 @pytest.mark.parametrize(
@@ -187,6 +187,6 @@ def test_contains_foreign_words_edge_cases(
     ],
 )
 def test_contains_foreign_words_pattern_removal(
-    json_cleaner, source_text, target_text, expected
+    text_cleaner, source_text, target_text, expected
 ):
-    assert json_cleaner.contains_foreign_words(source_text, target_text) == expected
+    assert text_cleaner.contains_foreign_words(source_text, target_text) == expected
