@@ -9,7 +9,7 @@ from src.type_defs import (
 
 @dataclass
 class TranslationConfig:
-    buffer_size: int = 50 # Number of lines for writing translations to file
+    buffer_size: int = 50  # Number of lines for writing translations to file
 
     length_language_ratio = {
         (
@@ -18,7 +18,7 @@ class TranslationConfig:
         ): 1.5,  # English → Russian: text is usually longer. Or you can get it from ~ len(translated_tokens) / len(source_tokens)
         # Add other pairs as needed and select the coefficient based on the translation quality obtained
     }
-    token_reserve: int = 20 # Reserve for BOS/EOS/special tokens
+    token_reserve: int = 20  # Reserve for BOS/EOS/special tokens
 
     exclude_keys: ExcludeKeysType = field(
         default_factory=lambda: (
@@ -50,7 +50,7 @@ class TranslationConfig:
 
     @classmethod
     def _get_template(cls, index: int, prefix: str) -> str:
-        return "<%s%d>" % (prefix, index)
+        return "[%s%d]" % (prefix, index)
 
     # Обёртки для читаемости
     @classmethod
@@ -59,11 +59,11 @@ class TranslationConfig:
 
     @classmethod
     def get_ner_template(cls, index: int) -> str:
-        return cls._get_template(index, "NER")
+        return cls._get_template(index, "ENT")
 
     @classmethod
-    def get_nl_template(cls, index: int) -> str:
-        return cls._get_template(index, "NL")
+    def get_nl_template(cls) -> str:
+        return "[NL]"
 
     @classmethod
     def get_p_regex(cls) -> str:
