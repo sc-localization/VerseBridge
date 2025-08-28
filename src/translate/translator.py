@@ -40,7 +40,7 @@ class Translator:
         """Validate that required components are properly initialized."""
         if not self.model:
             raise ValueError("Model must be initialized")
-        
+
         if not self.tokenizer:
             raise ValueError("Tokenizer must be initialized")
 
@@ -48,7 +48,6 @@ class Translator:
         self,
         inputs: BatchEncoding,
         max_new_tokens: int,
-        target_lang_code: str,
         min_new_tokens: Optional[int] = None,
     ) -> Any:
         """
@@ -59,9 +58,6 @@ class Translator:
                 return self.model.generate(
                     **inputs,  # type: ignore
                     generation_config=self.config.generation_config.to_generation_config(),
-                    forced_bos_token_id=self.tokenizer.convert_tokens_to_ids(
-                        target_lang_code
-                    ),
                     eos_token_id=self.tokenizer.eos_token_id,
                     max_new_tokens=max_new_tokens,
                     min_new_tokens=min_new_tokens,
@@ -99,6 +95,7 @@ class Translator:
         Translate a single text.
         """
         try:
+            text = f"<2ru> {text}"  # <2tgt_lang> text
             tokens = self.tokenizer(text, **tokenizer_args).to(self.device)
             input_length = int(torch.sum(tokens.attention_mask, dim=1).max().item())  # type: ignore
 
@@ -111,7 +108,6 @@ class Translator:
             translated_tokens = self._generate_translation(
                 tokens,
                 max_new_tokens,
-                cached_params["tgt_nllb_lang_code"],
                 min_new_tokens,
             )
 
@@ -144,9 +140,9 @@ class Translator:
         translation_config = self.config.translation_config
         dataset_config = self.config.dataset_config
 
-        tgt_nllb_lang_code = lang_config.tgt_nllb_lang_code
         src_lang = lang_config.src_lang
         tgt_lang = lang_config.tgt_lang
+        print(f"src_lang: {src_lang}, tgt_lang: {tgt_lang}")
 
         token_reserve = translation_config.token_reserve
         tokenizer_args = dataset_config.to_dict()
@@ -156,7 +152,6 @@ class Translator:
 
         cached_params: CachedParamsType = {
             "max_model_length": max_model_length,
-            "tgt_nllb_lang_code": tgt_nllb_lang_code,
             "token_reserve": token_reserve,
         }
 
@@ -170,7 +165,6 @@ class Translator:
 
                 return []
 
-            self.tokenizer.tgt_lang = tgt_nllb_lang_code
             translated_texts: List[str] = []
 
             try:
