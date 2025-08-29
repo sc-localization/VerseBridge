@@ -55,15 +55,15 @@ class TranslationConfig:
     # Обёртки для читаемости
     @classmethod
     def get_p_template(cls, index: int) -> str:
-        return cls._get_template(index, "PP")
+        return cls._get_template(index, "pp@pp")
 
     @classmethod
     def get_ner_template(cls, index: int) -> str:
-        return cls._get_template(index, "ENT")
+        return cls._get_template(index, "nn@nn")
 
     @classmethod
     def get_nl_template(cls) -> str:
-        return "[NL]"
+        return "[0]"
 
     @classmethod
     def get_p_regex(cls) -> str:
@@ -72,7 +72,7 @@ class TranslationConfig:
 
     @classmethod
     def get_ner_regex(cls) -> str:
-        template = cls.get_ner_template(0)  # [[NER0]]
+        template = cls.get_ner_template(0)  # [[NN0]]
         return re.escape(template).replace("0", r"\d+")
 
     @classmethod
