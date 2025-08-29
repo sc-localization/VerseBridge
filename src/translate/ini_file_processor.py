@@ -1,6 +1,6 @@
 from pathlib import Path
 from tqdm import tqdm
-from typing import Optional, Set, Tuple
+from typing import Set, Tuple
 
 
 from src.config import ConfigManager
@@ -40,7 +40,6 @@ class IniFileProcessor:
         value: INIFIleValueType,
         exclude_keys: ExcludeKeysType,
         missing_keys: Set[INIFIleKeyType],
-        untranslated_keys: Set[INIFIleKeyType],
     ) -> bool:
         """
         Checks if a key-value pair should be translated.
@@ -50,7 +49,6 @@ class IniFileProcessor:
             value (str): The value to check.
             exclude_keys (ExcludeKeysType): The keys to exclude from translation.
             missing_keys (Set[str]): Keys present in input but not in output.
-            untranslated_keys (Set[str]): Keys with untranslated values.
 
         Returns:
             bool: True if the key-value pair should be translated, False otherwise.
@@ -58,7 +56,7 @@ class IniFileProcessor:
         if key in exclude_keys or not value:
             return False
 
-        return key in missing_keys or key in untranslated_keys
+        return key in missing_keys
 
     def _process_line(
         self,
@@ -68,7 +66,6 @@ class IniFileProcessor:
         processed_lines: INIDataType,
         exclude_keys: ExcludeKeysType,
         missing_keys: Set[INIFIleKeyType],
-        untranslated_keys: Set[INIFIleKeyType],
         ner_patterns: JSONNERListType,
     ) -> Tuple[TranslatedIniLineType, TranslatedIniLineType]:
         """
@@ -80,18 +77,14 @@ class IniFileProcessor:
             translator (TranslatorCallableType): A callable for translating the text.
             processed_lines (INIDataType): A dictionary containing lines to be processed (translated or existing).
             exclude_keys (ExcludeKeysType): A tuple of keys to exclude from translation.
-            missing_keys (Set[str]): Keys present in input but not in output or existing items.
-            untranslated_keys (Set[str]): Keys with untranslated values in existing items.
+            missing_keys (Set[str]): Keys present in input but not in result.
             ner_patterns (JSONNERListType): Patterns for NER protection.
-
 
         Returns:
             Tuple[str, str]: The processed line in the format 'key=value'.
         """
 
-        if self._should_translate(
-            key, value, exclude_keys, missing_keys, untranslated_keys
-        ):
+        if self._should_translate(key, value, exclude_keys, missing_keys):
             context_value, full_value = self.text_processor.translate_text(
                 value, translator, ner_patterns
             )
@@ -102,7 +95,6 @@ class IniFileProcessor:
         context_line = f"{key}={context_value}\n"
         full_line = f"{key}={full_value}\n"
 
-        # Проверка формата (существующая)
         if not is_ini_file_line(context_line) or not is_ini_file_line(full_line):
             raise ValueError(f"Invalid INI line format for key '{key}'")
 
@@ -111,19 +103,19 @@ class IniFileProcessor:
     def _read_files(
         self,
         translation_input_file: Path,
-        translation_result_file: Path,
-        existing_translated_file: Optional[Path] = None,
-    ) -> Tuple[INIDataType, INIDataType, INIDataType]:
+        context_file: Path,
+        full_file: Path,
+    ) -> Tuple[INIDataType, INIDataType]:
         """
-        Reads key-value pairs from input and output INI files.
+        Reads key-value pairs from input and existing result files (context or full).
 
         Args:
             translation_input_file (Path): Path to the input INI file.
-            translation_result_file (Path): Path to the result translation INI file.
-            existing_translated_file: Path to an existing translated INI file, if any.
+            context_file (Path): Path to the context INI file.
+            full_file (Path): Path to the full INI file.
 
         Returns:
-            Tuple[INIDataType, INIDataType, INIDataType]: A tuple containing the source and destination key-value pairs.
+            Tuple[INIDataType, INIDataType]: The source key-value pairs (input_items).
         """
         try:
             input_items: INIDataType = self.file_utils.parse_ini_file(
@@ -132,24 +124,21 @@ class IniFileProcessor:
             self.logger.debug(
                 f"Read {len(input_items)} key-value pairs from {translation_input_file}"
             )
-
+            # Load result_items from context or full if they exist
             result_items: INIDataType = {}
-            if translation_result_file.exists():
-                result_items = self.file_utils.parse_ini_file(translation_result_file)
+
+            if context_file.exists():
+                result_items = self.file_utils.parse_ini_file(context_file)
                 self.logger.debug(
-                    f"Read {len(result_items)} key-value pairs from result {translation_result_file}"
+                    f"Using context file for continuation: {len(result_items)} pairs from {context_file}"
+                )
+            elif full_file.exists():
+                result_items = self.file_utils.parse_ini_file(full_file)
+                self.logger.debug(
+                    f"Using full file for continuation: {len(result_items)} pairs from {full_file}"
                 )
 
-            existing_items: INIDataType = {}
-            if existing_translated_file and existing_translated_file.exists():
-                existing_items = self.file_utils.parse_ini_file(
-                    existing_translated_file
-                )
-                self.logger.debug(
-                    f"Read {len(existing_items)} key-value pairs from existing {existing_translated_file}"
-                )
-
-            return input_items, result_items, existing_items
+            return input_items, result_items
         except Exception as e:
             self.logger.error(f"Failed to read files: {str(e)}")
             raise
@@ -158,62 +147,44 @@ class IniFileProcessor:
         self,
         input_items: INIDataType,
         result_items: INIDataType,
-        existing_items: INIDataType,
-    ) -> Tuple[Set[INIFIleKeyType], Set[INIFIleKeyType], Set[INIFIleKeyType]]:
+    ) -> Tuple[Set[INIFIleKeyType], Set[INIFIleKeyType]]:
         """
-        Compares keys of input, result, and existing dictionaries:
-            1. missing_keys: Keys present in input_items but not in result_items or existing_items.
+        Compares keys of input and result dictionaries:
+            1. missing_keys: Keys present in input_items but not in result_items.
             2. obsolete_keys: Keys present in result_items but not in input_items.
-            3. untranslated_keys: Keys in both input_items and existing_items with identical values,
-               not present in result_items, indicating untranslated content.
 
         Args:
             input_items: The dictionary of input items.
-            result_items: The dictionary of result items from translation_result_file.
-            existing_items: The dictionary of existing translated items.
+            result_items: The dictionary of result items from context/full file.
 
-            Returns:
-                Tuple[Set[str], Set[str], Set[str]]: A tuple containing:
-                    missing_keys: Keys to be translated based on priority.
-                    obsolete_keys: Keys present in result but not in input.
-                    untranslated_keys: Keys with untranslated values based on priority.
+        Returns:
+            Tuple[Set[str], Set[str]]: A tuple containing:
+                missing_keys: Keys to be translated.
+                obsolete_keys: Keys to remove.
         """
         input_keys: Set[str] = set(input_items.keys())
         result_keys: Set[str] = set(result_items.keys())
-        existing_keys: Set[str] = set(existing_items.keys())
         exclude_keys: ExcludeKeysType = self.config.translation_config.exclude_keys
 
-        # New keys: absent in result_items and existing_items (or translated in existing_items)
-        missing_keys = input_keys - result_keys - existing_keys
+        # New keys: absent in result_items
+        missing_keys = input_keys - result_keys
         # Obsolete keys: present in result_items but absent in input_items
         obsolete_keys = result_keys - input_keys
-        # Untranslated keys: present in existing_items, but values match input_items
-        untranslated_keys = {
-            key
-            for key in input_keys & existing_keys
-            if key not in result_keys
-            and input_items[key] == existing_items[key]
-            and key not in exclude_keys
-            and input_items[key]
+        # Filter out missing_keys, excluding exclude_keys and empty values
+        missing_keys = {
+            key for key in missing_keys if key not in exclude_keys and input_items[key]
         }
 
         self.logger.info(f"Found {len(missing_keys)} new keys for translation")
         self.logger.info(f"Found {len(obsolete_keys)} obsolete keys to remove")
-        if untranslated_keys:
-            self.logger.info(
-                f"Found {len(untranslated_keys)} keys with not translated values"
-            )
-        else:
-            self.logger.info("No untranslated keys found")
 
-        return missing_keys, obsolete_keys, untranslated_keys
+        return missing_keys, obsolete_keys
 
     def translate_file(
         self,
         translation_input_file: Path,
         translation_result_file: Path,
         translator: TranslatorCallableType,
-        existing_translated_file: Optional[Path] = None,
     ) -> None:
         """
         Translates an INI file, preserving existing translations if provided.
@@ -223,26 +194,9 @@ class IniFileProcessor:
             translation_result_file: Path to the translation result INI file.
             translator: A callable that takes a source and target language code
                 and returns a translated string.
-            existing_translated_file: Path to an existing translated INI file,
-                if any.
         """
         self.logger.info(f"Translating file: {translation_input_file}")
-        self.logger.debug(f"Result translation file: {translation_result_file}")
-        if existing_translated_file:
-            self.logger.debug(
-                f"Using existing translations from: {existing_translated_file}"
-            )
-
-        if (
-            existing_translated_file
-            and existing_translated_file == translation_result_file
-        ):
-            self.logger.error(
-                "existing_translated_file cannot be the same as output_translation_file"
-            )
-            raise ValueError(
-                "existing_translated_file cannot be the same as output_translation_file"
-            )
+        self.logger.debug(f"Base translation file: {translation_result_file}")
 
         translation_dest_dir = translation_result_file.parent
 
@@ -252,53 +206,6 @@ class IniFileProcessor:
                 f"Output directory {translation_dest_dir} does not exist"
             )
 
-        input_items, result_items, existing_items = self._read_files(
-            translation_input_file,
-            translation_result_file,
-            existing_translated_file,
-        )
-
-        missing_keys, obsolete_keys, untranslated_keys = self._compare_keys(
-            input_items, result_items, existing_items
-        )
-
-        if not missing_keys and not obsolete_keys and not untranslated_keys:
-            if (
-                existing_translated_file
-                and existing_translated_file.exists()
-                and not translation_result_file.exists()
-            ):
-                self.logger.info(
-                    f"No changes detected, copying existing translations {existing_translated_file} to {translation_dest_dir}"
-                )
-                try:
-                    self.file_utils.copy_files(
-                        existing_translated_file,
-                        translation_dest_dir,
-                        dest_name=translation_result_file.name,
-                    )
-                except Exception as e:
-                    self.logger.error(
-                        f"Failed to copy {existing_translated_file}: {str(e)}"
-                    )
-                    raise
-            else:
-                self.logger.info(f"No changes detected, skipping translation")
-
-            return
-
-        input_keys = set(input_items.keys())
-
-        # Combine translations: priority result_items > existing_items > new translation
-        processed_lines: INIDataType = result_items.copy()
-
-        for key in input_keys:
-            if key not in processed_lines:
-                if key in existing_items:
-                    processed_lines[key] = existing_items[key]
-                else:
-                    processed_lines[key] = input_items[key]
-
         # Create two files
         context_file = translation_result_file.with_name(
             translation_result_file.stem + "_context.ini"
@@ -306,6 +213,25 @@ class IniFileProcessor:
         full_file = translation_result_file.with_name(
             translation_result_file.stem + "_full.ini"
         )
+
+        input_items, result_items = self._read_files(
+            translation_input_file, context_file, full_file
+        )
+
+        missing_keys, obsolete_keys = self._compare_keys(input_items, result_items)
+
+        if not missing_keys and not obsolete_keys:
+            self.logger.info(f"No changes detected, skipping translation")
+            return
+
+        input_keys = set(input_items.keys())
+
+        # Combine translations: result_items (from context/full) + new from input
+        processed_lines: INIDataType = result_items.copy()
+
+        for key in input_keys:
+            if key not in processed_lines:
+                processed_lines[key] = input_items[key]
 
         ner_patterns_path = self.config.ner_path_config.ner_patterns_path
 
@@ -350,7 +276,6 @@ class IniFileProcessor:
                     processed_lines,
                     self.config.translation_config.exclude_keys,
                     missing_keys,
-                    untranslated_keys,
                     ner_patterns,
                 )
 
