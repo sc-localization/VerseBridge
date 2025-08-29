@@ -73,12 +73,6 @@ def parse_args() -> argparse.Namespace:
         metavar="",
         help=help_strings["input_file_help"],
     )
-    path_group.add_argument(
-        "--existing-translated-file",
-        type=str,
-        default=None,
-        help=help_strings["existing_translated_file_help"],
-    )
 
     args = parser.parse_args()
 
@@ -93,14 +87,6 @@ def parse_args() -> argparse.Namespace:
     # Validate file paths
     if args.input_file and not Path(args.input_file).is_file():
         parser.error(f"Input file {args.input_file} does not exist")
-
-    if (
-        args.existing_translated_file
-        and not Path(args.existing_translated_file).is_file()
-    ):
-        parser.error(
-            f"Existing translated file {args.existing_translated_file} does not exist"
-        )
 
     return args
 
@@ -135,7 +121,6 @@ def main():
         pipeline.run_translation(
             translated_file_name=args.translated_file_name,
             model_cli_path=args.model_path,
-            existing_translated_file=args.existing_translated_file,
         )
     except Exception as e:
         logger.error(f"🛑 An error occurred during translation: {e}")

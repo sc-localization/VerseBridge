@@ -1,6 +1,6 @@
-from typing import List
 import torch
 from transformers import BatchEncoding
+from typing import List, Optional, Any
 
 from src.config import ConfigManager
 from src.type_defs import (
@@ -10,6 +10,8 @@ from src.type_defs import (
     TranslatorCallableType,
     INIFIleValueType,
     TranslatedIniValueType,
+    CachedParamsType,
+    TokenizerConfigType,
 )
 from src.utils import MemoryManager
 from .text_processor import TextProcessor
@@ -32,127 +34,168 @@ class Translator:
         self.memory_manager = MemoryManager(self.logger)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    def generate_translation(
+        self._validate_initialization()
+
+    def _validate_initialization(self) -> None:
+        """Validate that required components are properly initialized."""
+        if not self.model:
+            raise ValueError("Model must be initialized")
+
+        if not self.tokenizer:
+            raise ValueError("Tokenizer must be initialized")
+
+    def _generate_translation(
         self,
         inputs: BatchEncoding,
-        target_lang_code: str,
-        max_model_length: int = 512,
-        min_tokens: int = 16,
-        scale_factor: float = 1.8,
-    ) -> str:
-        if not self.model:
-            self.logger.error("Model is not initialized")
-            raise ValueError("Model must be initialized before generating translation")
-
-        inputs_length = inputs.input_ids.shape[1]  # type: ignore
-        max_new_tokens = int(min_tokens + scale_factor * inputs_length)  # type: ignore
-        min_len = int(inputs_length * 1.1) if inputs_length > 10 else None  # type: ignore
-
-        # Check for exceeding the model limit
-        # Should not happen normally, as `max_inputs_allowed` should prevent such cases
-        # If, despite `max_inputs_allowed`, the number of tokens exceeds `max_model_length`,
-        # then decrease max_new_tokens
-        total_length = max_new_tokens + inputs_length
-
-        if total_length > max_model_length:
-            self.logger.warning(
-                f"Total length ({total_length}) exceeds model limit ({max_model_length}). Adjusting max_new_tokens."
-            )
-            max_new_tokens = (
-                max_model_length
-                - inputs_length
-                - self.config.translation_config.token_reserve
-            )
-
+        max_new_tokens: int,
+        min_new_tokens: Optional[int] = None,
+    ) -> Any:
+        """
+        Generate translation for given inputs.
+        """
         try:
             with torch.no_grad(), torch.amp.autocast("cuda"):
-                translated_tokens = self.model.generate(
+                return self.model.generate(
                     **inputs,  # type: ignore
-                    max_new_tokens=max_new_tokens,
-                    min_new_tokens=min_len,  # type: ignore
-                    forced_bos_token_id=self.tokenizer.convert_tokens_to_ids(  # type: ignore
-                        target_lang_code
-                    ),
                     generation_config=self.config.generation_config.to_generation_config(),
+                    eos_token_id=self.tokenizer.eos_token_id,
+                    max_new_tokens=max_new_tokens,
+                    min_new_tokens=min_new_tokens,
                 )
-
-            generated_text = self.tokenizer.batch_decode(
-                translated_tokens, skip_special_tokens=True
-            )
-
-            return generated_text[0]
         except Exception as e:
             self.logger.error(f"Failed to generate translation: {str(e)}")
             raise
 
+    def _calculate_token_limits(
+        self, input_length: int, max_model_length: int, token_reserve: int
+    ) -> tuple[Optional[int], int]:
+        """
+        Calculate min and max new tokens for generation.
+        """
+        min_new_tokens = None
+
+        max_new_tokens = max_model_length - input_length - token_reserve
+
+        if max_new_tokens <= 0:
+            self.logger.warning(
+                f"Input length ({input_length}) exceeds model limit ({max_model_length})"
+            )
+
+            max_new_tokens = max(50, max_model_length - input_length)
+
+        return min_new_tokens, max_new_tokens
+
+    def _translate_single_text(
+        self,
+        text: INIFIleValueType,
+        tokenizer_args: TokenizerConfigType,
+        cached_params: CachedParamsType,
+    ) -> TranslatedIniValueType:
+        """
+        Translate a single text.
+        """
+        try:
+            text = f"<2ru> {text}"  # <2tgt_lang> text
+            tokens = self.tokenizer(text, **tokenizer_args).to(self.device)
+            input_length = int(torch.sum(tokens.attention_mask, dim=1).max().item())  # type: ignore
+
+            min_new_tokens, max_new_tokens = self._calculate_token_limits(
+                input_length,
+                cached_params["max_model_length"],
+                cached_params["token_reserve"],
+            )
+
+            translated_tokens = self._generate_translation(
+                tokens,
+                max_new_tokens,
+                min_new_tokens,
+            )
+
+            translated_text = self.tokenizer.batch_decode(
+                translated_tokens, skip_special_tokens=True
+            )[0].strip()
+
+            return translated_text
+
+        except Exception as e:
+            self.logger.error(f"Failed to translate text: '{text[:100]}...' - {str(e)}")
+            raise
+
+    def _should_split_text(
+        self, text: str, tokenizer_args: TokenizerConfigType, max_inputs_allowed: int
+    ) -> bool:
+        """
+        Check if text needs to be split due to length constraints.
+        """
+        tokens = self.tokenizer(text, **tokenizer_args)
+        input_length = len(tokens["input_ids"][0])  # type: ignore
+
+        return input_length >= max_inputs_allowed
+
     def create_translator(self) -> TranslatorCallableType:
-        if not self.model or not self.tokenizer:
-            raise ValueError(
-                "Model and tokenizer must be initialized before creating translator"
-            )
+        """
+        Create a translator callable function.
+        """
+        lang_config = self.config.lang_config
+        translation_config = self.config.translation_config
+        dataset_config = self.config.dataset_config
 
-        def translate(text: INIFIleValueType) -> TranslatedIniValueType:
-            self.tokenizer.src_lang = self.config.lang_config.src_nllb_lang_code
-            self.tokenizer.tgt_lang = self.config.lang_config.tgt_nllb_lang_code
+        src_lang = lang_config.src_lang
+        tgt_lang = lang_config.tgt_lang
 
-            src_lang = self.config.lang_config.src_lang
-            tgt_lang = self.config.lang_config.tgt_lang
+        token_reserve = translation_config.token_reserve
+        tokenizer_args = dataset_config.to_dict()
+        max_model_length = tokenizer_args["max_length"]
 
-            tokenizer_args = self.config.dataset_config.to_dict()
-            max_model_length = tokenizer_args["max_length"]
+        language_ratio = translation_config.get_language_ratio(src_lang, tgt_lang)
 
-            tokens = self.tokenizer(text, **tokenizer_args)
-            input_length = len(tokens["input_ids"][0])  # type: ignore
+        cached_params: CachedParamsType = {
+            "max_model_length": max_model_length,
+            "token_reserve": token_reserve,
+        }
 
-            min_tokens: int = self.config.translation_config.min_tokens
-            scale_factor: float = self.config.translation_config.get_scale_factor(
-                src_lang, tgt_lang
-            )
+        max_inputs_allowed = int(
+            (max_model_length - token_reserve) / (1 + language_ratio)
+        )
 
-            # The formula for `max_inputs_allowed` is calculated to limit the input text length, assuming that:
-            #     inputs_length + max_new_tokens = inputs_length + (min_tokens + scale_factor * inputs_length) = min_tokens + (1 + scale_factor) * inputs_length <= max_model_length
-            # From here:
-            #     inputs_length <= (max_model_length - min_tokens) / (1 + scale_factor)
-            max_inputs_allowed = int(
-                (max_model_length - min_tokens) / (1 + scale_factor)
-            )
+        def translate(texts: List[INIFIleValueType]) -> List[TranslatedIniValueType]:
+            if not texts:
+                self.logger.warning("Empty input text list provided")
 
-            if input_length > max_inputs_allowed:
-                self.logger.debug(
-                    f"Text too long ({input_length} tokens), splitting..."
-                )
+                return []
 
-                parts = self.text_processor.split_text(
-                    text, self.tokenizer, max_inputs_allowed, tokenizer_args
-                )
+            translated_texts: List[str] = []
 
-                translated_parts: List[str] = []
+            try:
+                for text in texts:
+                    if self._should_split_text(
+                        text, tokenizer_args, max_inputs_allowed
+                    ):
+                        self.logger.debug("Text too long, splitting...")
 
-                for part in parts:
-                    inputs = self.tokenizer(part, **tokenizer_args)
-                    inputs = inputs.to(self.device)
+                        chunks = self.text_processor.split_text(
+                            text, self.tokenizer, max_inputs_allowed, tokenizer_args
+                        )
 
-                    translated_part = self.generate_translation(
-                        inputs,
-                        self.config.lang_config.tgt_nllb_lang_code,
-                        max_model_length,
-                        min_tokens,
-                        scale_factor,
-                    )
+                        translated_chunks = [
+                            self._translate_single_text(
+                                chunk, tokenizer_args, cached_params
+                            )
+                            for chunk in chunks
+                        ]
 
-                    translated_parts.append(translated_part.strip())
+                        translated_texts.append(" ".join(translated_chunks))
+                    else:
+                        translated_text = self._translate_single_text(
+                            text, tokenizer_args, cached_params
+                        )
 
-                translated_text = " ".join(translated_parts)
-            else:
-                inputs = tokens.to(self.device)
-                translated_text = self.generate_translation(
-                    inputs,
-                    self.config.lang_config.tgt_nllb_lang_code,
-                    max_model_length,
-                    min_tokens,
-                    scale_factor,
-                )
+                        translated_texts.append(translated_text)
 
-            return translated_text.strip()
+                return translated_texts
+
+            except Exception as e:
+                self.logger.error(f"Translation failed: {str(e)}")
+                raise
 
         return translate

@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 import torch
 from typing import Optional
 
@@ -32,9 +31,7 @@ class TranslationPipeline:
         self.file_utils = FileUtils(self.logger)
         self.memory_manager = MemoryManager(self.logger)
         self.tokenizer_initializer = TokenizerInitializer(self.config, self.logger)
-        self.text_processor = TextProcessor(
-            self.config.translation_config.protected_patterns, self.logger
-        )
+        self.text_processor = TextProcessor(self.config, self.logger)
         self.model_initializer = ModelInitializer(self.config, self.logger)
         self.ini_file_processor = IniFileProcessor(
             self.config, self.text_processor, self.logger
@@ -44,7 +41,6 @@ class TranslationPipeline:
         self,
         translated_file_name: TranslatedFileNameType = None,
         model_cli_path: ModelCLIType = None,
-        existing_translated_file: Optional[str] = None,
     ) -> None:
         self.logger.info("🚀 Starting translation pipeline")
         self.memory_manager.clear()
@@ -61,10 +57,6 @@ class TranslationPipeline:
             )
             translation_dest_dir = (
                 self.config.translation_path_config.translation_dest_dir
-            )
-
-            existing_translated_file_path = (
-                Path(existing_translated_file) if existing_translated_file else None
             )
 
             # 1. Copying input `.ini` file
@@ -106,10 +98,7 @@ class TranslationPipeline:
                 )
 
                 self.ini_file_processor.translate_file(
-                    translation_input_file,
-                    translation_result_file,
-                    translator,
-                    existing_translated_file=existing_translated_file_path,
+                    translation_input_file, translation_result_file, translator
                 )
 
             self.logger.info("✅ Translation pipeline completed successfully")

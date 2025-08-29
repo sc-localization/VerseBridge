@@ -14,7 +14,7 @@
 
 > **Проверено на**: _WSL Ubuntu 22.04_, _NVIDIA CUDA 12.8_, _12GB 4070 GPU_
 
-**Документация**: [Русский](doc/README_RU.md)
+**Документация**: [English](../README.md)
 
 ---
 
@@ -112,7 +112,7 @@ uv run -m scripts.run_preprocess
 
 #### 2. Обучение модели
 
-Для дообучения модели NLLB-200 выполните:
+Для дообучения модели выполните:
 
 ```sh
 uv run -m scripts.run_training
@@ -268,18 +268,6 @@ uv run -m scripts.run_translation --src-lang en --tgt-lang ru --translated-file-
 uv run -m scripts.run_translation --input-file data/raw/global_original_test.ini
 ```
 
-- повторный перевод уже переведённого INI-файла:
-
-```sh
-uv run -m scripts.run_translation --input-file data/raw/global_original_test.ini --existing-translated-file data/global_original_exist.ini
-```
-
-- повторный перевод с приоритетом (если переведённые файлы уже есть в директории назначения `translation_results`, они будут заменены строками из `existing-translated-file`):
-
-```sh
-uv run -m scripts.run_translation --input-file data/raw/global_original_test.ini --existing-translated-file data/global_original_exist.ini
-```
-
 - использовать дообученную модель для перевода:
 
 ```sh
@@ -324,8 +312,8 @@ uv run -m scripts.run_ner --stage extract
 
 ## Лицензия
 
-- **Код**: MIT License ([LICENSE_CODE](LICENSE_CODE))
+- **Код**: MIT License ([LICENSE_CODE](../LICENSE))
   <!-- TODO: Добавить, если датасет из переводов будет добавлен в репозиторий -->
   <!-- - **Ru Translations**: Creative Commons BY-NC-SA 4.0 ([LICENSE_TRANSLATIONS](LICENSE_TRANSLATIONS)) -->
 
-**Cloud Imperium Games предоставлено специальное разрешение на неограниченное использование. См. [SPECIAL_PERMISSION](SPECIAL_PERMISSION.md).**
+**Cloud Imperium Games предоставлено специальное разрешение на неограниченное использование. См. [SPECIAL_PERMISSION](../SPECIAL_PERMISSION.md).**

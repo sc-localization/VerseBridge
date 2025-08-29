@@ -9,7 +9,7 @@ from .paths import TrainingPathConfig
 @dataclass
 class ModelConfig:
     path_config: TrainingPathConfig
-    model_name: TranslationModelNameType = "facebook/nllb-200-distilled-1.3B"
+    model_name: TranslationModelNameType = "google/madlad400-3b-mt"
     result_path: Path = field(init=False)
     checkpoints_path: Path = field(init=False)
     last_checkpoint: LastCheckpointPathType = field(init=False, default=None)

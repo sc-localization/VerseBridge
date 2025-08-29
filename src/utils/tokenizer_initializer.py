@@ -45,9 +45,6 @@ class TokenizerInitializer:
             "pretrained_model_name_or_path": model_name,
         }
 
-        if self.task == "translation":
-            tokenizerParams["src_lang"] = self.config.lang_config.src_nllb_lang_code
-
         try:
             self.tokenizer = cast(
                 InitializedTokenizerType,

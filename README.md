@@ -112,7 +112,7 @@ uv run -m scripts.run_preprocess
 
 #### 2. Train Model
 
-To fine-tune the NLLB-200 model, run:
+To fine-tune the model, run:
 
 ```sh
 uv run -m scripts.run_training
@@ -268,18 +268,6 @@ uv run -m scripts.run_translation --src-lang en --tgt-lang ru --translated-file-
 uv run -m scripts.run_translation --input-file data/raw/global_original_test.ini
 ```
 
-- re-translate an existing translated INI file:
-
-```sh
-uv run -m scripts.run_translation --input-file data/raw/global_original_test.ini --existing-translated-file data/global_original_exist.ini
-```
-
-- re-translate an existing translated INI file with priority (if translated files already exist in the destination directory `translation_results`, they will be replaced with lines from `existing-translated-file`):
-
-```sh
-uv run -m scripts.run_translation --input-file data/raw/global_original_test.ini --existing-translated-file data/global_original_exist.ini
-```
-
 - use a fine tuned model for translation:
 
 ```sh
@@ -324,7 +312,7 @@ If you would like to contribute to the project, please read [CONTRIBUTING](CONTR
 
 ## License
 
-- **Code**: MIT License ([LICENSE_CODE](LICENSE_CODE))
+- **Code**: MIT License ([LICENSE_CODE](LICENSE))
   <!-- TODO: Add if a training dataset created from translations will be added to the repository -->
   <!-- - **Ru Translations**: Creative Commons BY-NC-SA 4.0 ([LICENSE_TRANSLATIONS](LICENSE_TRANSLATIONS)) -->
 

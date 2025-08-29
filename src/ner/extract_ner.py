@@ -3,7 +3,7 @@ from transformers import pipeline
 
 from src.config import ConfigManager
 from src.utils import FileUtils, TokenizerInitializer
-from src.preprocess import JsonCleaner
+from src.preprocess import TextCleaner
 from src.type_defs import (
     LoggerType,
     INIDataType,
@@ -30,7 +30,7 @@ class NERExtractor:
 
         self.file_utils = FileUtils(self.logger)
 
-        self.json_cleaner = JsonCleaner(
+        self.text_cleaner = TextCleaner(
             tokenizer=TokenizerInitializer(
                 self.config, self.logger, task="translation"
             ).initialize(),
@@ -63,7 +63,7 @@ class NERExtractor:
             if key in self.config.translation_config.exclude_keys:
                 continue
 
-            cleaned_text = self.json_cleaner.clean_text(raw_text, remove_patterns=True)
+            cleaned_text = self.text_cleaner.clean_text(raw_text, remove_patterns=True)
 
             if cleaned_text and self.ner:
                 threshold_confidence = self.config.ner_config.threshold_confidence
