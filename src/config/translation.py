@@ -52,7 +52,6 @@ class TranslationConfig:
     def _get_template(cls, index: int, prefix: str) -> str:
         return "[%s%d]" % (prefix, index)
 
-    # Обёртки для читаемости
     @classmethod
     def get_p_template(cls, index: int) -> str:
         return cls._get_template(index, "pp@pp")
