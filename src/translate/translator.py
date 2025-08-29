@@ -142,7 +142,6 @@ class Translator:
 
         src_lang = lang_config.src_lang
         tgt_lang = lang_config.tgt_lang
-        print(f"src_lang: {src_lang}, tgt_lang: {tgt_lang}")
 
         token_reserve = translation_config.token_reserve
         tokenizer_args = dataset_config.to_dict()
