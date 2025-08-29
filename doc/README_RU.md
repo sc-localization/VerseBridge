@@ -112,7 +112,7 @@ uv run -m scripts.run_preprocess
 
 #### 2. Обучение модели
 
-Для дообучения модели NLLB-200 выполните:
+Для дообучения модели выполните:
 
 ```sh
 uv run -m scripts.run_training
