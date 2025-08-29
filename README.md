@@ -112,7 +112,7 @@ uv run -m scripts.run_preprocess
 
 #### 2. Train Model
 
-To fine-tune the NLLB-200 model, run:
+To fine-tune the model, run:
 
 ```sh
 uv run -m scripts.run_training
