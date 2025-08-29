@@ -4,7 +4,7 @@ from src.config import ConfigManager
 from src.utils import AppLogger, FileUtils, TokenizerInitializer
 from src.type_defs import ArgLoggerType, is_json_data_tranlation_list_type
 from .ini_to_json_converter import IniConverter
-from .json_cleaner import JsonCleaner
+from .text_cleaner import TextCleaner
 from .data_splitter import DataSplitter
 
 
@@ -23,7 +23,7 @@ class PreprocessPipeline:
         self.ini_converter = IniConverter(
             self.config.translation_config.exclude_keys, self.logger
         )
-        self.json_cleaner = JsonCleaner(
+        self.text_cleaner = TextCleaner(
             self.tokenizer,
             self.config.translation_config.protected_patterns,
             self.config.dataset_config.max_model_length,
@@ -47,7 +47,9 @@ class PreprocessPipeline:
             # Path to intermediate JSON files
             data_json_path = self.config.training_path_config.raw_dataset
             cleaned_json_path = self.config.training_path_config.cleaned_dataset
-            train_json_path = self.config.training_path_config.trained_data_files["train"]
+            train_json_path = self.config.training_path_config.trained_data_files[
+                "train"
+            ]
             test_json_path = self.config.training_path_config.trained_data_files["test"]
 
             # Step 1: Convert INI to JSON
@@ -68,7 +70,7 @@ class PreprocessPipeline:
                     "JSON data must contain a list of dictionaries with 'original' and 'translated' keys"
                 )
 
-            cleaned_data = self.json_cleaner.clean_json_data(loaded_json_data)
+            cleaned_data = self.text_cleaner.clean_json_data(loaded_json_data)
             self.file_utils.save_json(cleaned_data, cleaned_json_path)
 
             # Step 3: Split data

@@ -49,20 +49,23 @@ class DatasetManager:
             """
             Tokenizes the input examples and prepares them for the model.
             """
-            tokenizer.src_lang = self.config.lang_config.src_nllb_lang_code
-            inputs = tokenizer(
-                examples["original"],
-                **tokenizer_base_args,
-            )
-            tokenizer.src_lang = self.config.lang_config.tgt_nllb_lang_code
-            targets = tokenizer(
-                examples["translated"],
-                **tokenizer_base_args,
-            )
-            inputs["labels"] = targets["input_ids"]
-            inputs["decoder_input_ids"] = targets["input_ids"]
+            inputs = [
+                f"{self.config.lang_config.tgt_lang_token} {example}"
+                for example in examples["original"]
+            ]
+            targets = examples["translated"]
 
-            return inputs
+            model_inputs = tokenizer(
+                inputs,
+                **tokenizer_base_args,
+            )
+            labels = tokenizer(
+                targets,
+                **tokenizer_base_args,
+            )
+            model_inputs["labels"] = labels["input_ids"]
+
+            return model_inputs
 
         try:
             tokenized_dataset: DatasetDict = dataset.map(

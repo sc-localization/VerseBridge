@@ -14,7 +14,7 @@ from src.type_defs import (
 )
 
 
-class JsonCleaner:
+class TextCleaner:
     def __init__(
         self,
         tokenizer: InitializedTokenizerType,

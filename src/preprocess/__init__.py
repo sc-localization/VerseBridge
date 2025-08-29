@@ -1,5 +1,5 @@
 from .preprocess_pipeline import PreprocessPipeline
-from .json_cleaner import JsonCleaner
+from .text_cleaner import TextCleaner
 from .data_splitter import DataSplitter
 
-__all__ = ["PreprocessPipeline", "JsonCleaner", "DataSplitter"]
+__all__ = ["PreprocessPipeline", "TextCleaner", "DataSplitter"]

@@ -34,8 +34,8 @@ class LangCode(str, Enum):
 
 
 class MappedCode(str, Enum):
-    ENG_LATN = "eng_Latn"
-    RUS_CYRL = "rus_Cyrl"
+    ENG_LATN = f"<2{LangCode.EN.value}>"
+    RUS_CYRL = f"<2{LangCode.RU.value}>"
 
 
 LangMapType = Dict[LangCode, MappedCode]
@@ -164,6 +164,7 @@ JSONHelpStringsDictType = HelpStringsLangType
 JSONDataTranslationListType: TypeAlias = List[JSONDataTranslationType]
 JSONDataNERListType: TypeAlias = List[JSONDataNERType]
 JSONDataConvertedToBIOListType: TypeAlias = List[JSONConvertedToBIOType]
+JSONNERListType: TypeAlias = List[str]
 
 
 LoadedJSONType: TypeAlias = (
@@ -171,12 +172,13 @@ LoadedJSONType: TypeAlias = (
     | JSONDataTranslationListType
     | JSONDataNERListType
     | JSONDataConvertedToBIOListType
+    | JSONNERListType
 )
 
 CleanedINIFIleValueType: TypeAlias = INIFIleValueType
 
 
-TranslationModelNameType: TypeAlias = Literal["facebook/nllb-200-distilled-1.3B"]
+TranslationModelNameType: TypeAlias = Literal["google/madlad400-3b-mt"]
 NerModelNameType: TypeAlias = Literal["Jean-Baptiste/roberta-large-ner-english"]
 ModelPathType: TypeAlias = str
 ModelCLIType: TypeAlias = Optional[ModelPathType]
@@ -190,11 +192,19 @@ TranslatedFileNameType = Optional[str]
 
 BufferType: TypeAlias = List[TranslatedIniLineType]
 
-TranslatorCallableType: TypeAlias = Callable[[str], str]
+TranslatorCallableType: TypeAlias = Callable[
+    [List[INIFIleValueType]], List[TranslatedIniValueType]
+]
 
 AppTaskType: TypeAlias = Literal["ner", "translation"]  # TODO: use enum if posible
 CharToTokenType: TypeAlias = List[Tuple[int, int]]
 AggregationStrategyType: TypeAlias = Literal["simple", "average", "max", "none"]
+
+
+class CachedParamsType(TypedDict):
+    max_model_length: int
+    token_reserve: int
+
 
 class TranslationTrainingConfigType(TypedDict):
     logging_dir: str
@@ -347,3 +357,7 @@ def is_ini_file_line(line: Any) -> TypeGuard[IniLineType]:
         return False
 
     return True
+
+
+def is_list_of_ner_patterns(obj: Any) -> TypeGuard[JSONNERListType]:
+    return isinstance(obj, list) and all(isinstance(x, str) for x in obj)
