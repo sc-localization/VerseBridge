@@ -10,6 +10,6 @@ class LoraConfig(PeftLoraConfig):
     lora_alpha: int = 16
     lora_dropout: float = 0.1
     target_modules: LoraTargetModulesType = field(
-        default_factory=lambda: ["q_proj", "v_proj"]
+        default_factory=lambda: ["q", "v"]
     )
     task_type = TaskType.SEQ_2_SEQ_LM
