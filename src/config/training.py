@@ -50,19 +50,20 @@ class TranslationTrainingConfig:
     max_grad_norm: float = 1.0
 
     # === Optimizer and scheduler ===
-    optim: Optimizer = Optimizer.adafactor
+    optim: Optimizer = Optimizer.paged_adamw_8bit
     lr_scheduler_type: Scheduler = Scheduler.linear
 
     # === Batching and gradients ===
-    per_device_train_batch_size: int = 16
-    per_device_eval_batch_size: int = 16
-    gradient_accumulation_steps: int = 4
+    fp16: bool = True
+    per_device_train_batch_size: int = 6
+    per_device_eval_batch_size: int = 6
+    gradient_accumulation_steps: int = 16
     eval_accumulation_steps: int = 4
 
     # === Validation and saving strategies ===
     eval_strategy: Strategy = Strategy.STEPS
     eval_steps: int = 500
-    eval_on_start: bool = True
+    eval_on_start: bool = False
     predict_with_generate: bool = True
     save_strategy: Strategy = Strategy.STEPS
     save_steps: int = 500
