@@ -27,7 +27,9 @@ class DatasetManager:
             self.logger.error("One of the datasets is empty!")
             raise ValueError("Dataset is empty")
 
-        self.logger.debug(f"Example from validation dataset: {dataset['test'][0]}")
+        self.logger.debug(
+            f"Example from validation dataset: {dataset['test'][0]}\nTrain dataset size: {len(dataset['train'])}"
+        )
 
         return dataset
 
