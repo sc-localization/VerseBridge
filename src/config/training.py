@@ -68,7 +68,7 @@ class TranslationTrainingConfig:
     save_steps: int = 500
     save_total_limit: int = 5
     load_best_model_at_end: bool = True
-    metric_for_best_model: Metric = Metric.BERTSCORE_F1
+    metric_for_best_model: Metric = Metric.BLEU
     greater_is_better: bool = True
 
     # === Logging and reporting ===
