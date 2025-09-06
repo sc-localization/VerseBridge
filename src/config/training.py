@@ -44,7 +44,7 @@ class TranslationTrainingConfig:
 
     # === General training parameters ===
     num_train_epochs: int = 10
-    learning_rate: float = 5e-6
+    learning_rate: float = 2e-4
     weight_decay: float = 0.01
     warmup_ratio: float = 0.05
     max_grad_norm: float = 1.0
@@ -55,9 +55,9 @@ class TranslationTrainingConfig:
 
     # === Batching and gradients ===
     fp16: bool = True
-    per_device_train_batch_size: int = 6
-    per_device_eval_batch_size: int = 6
-    gradient_accumulation_steps: int = 16
+    per_device_train_batch_size: int = 4
+    per_device_eval_batch_size: int = 4
+    gradient_accumulation_steps: int = 32
     eval_accumulation_steps: int = 4
 
     # === Validation and saving strategies ===
