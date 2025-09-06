@@ -50,7 +50,7 @@ class ModelInitializer:
         for_training: bool,
         torch_dtype: torch.dtype,
         use_lora: bool = False,
-    ) -> PreTrainedModel:
+    ) -> InitializedModelType:
         """
         Loads a base model with safety checks and error handling.
 
@@ -60,7 +60,7 @@ class ModelInitializer:
             use_lora (bool): Whether to apply LoRA adapters. Defaults to False.
 
         Returns:
-            PreTrainedModel: The loaded sequence-to-sequence model.
+            InitializedModelType: The loaded sequence-to-sequence model.
 
         Raises:
             ValueError: If the model name is empty or if loading the model fails.
@@ -90,7 +90,13 @@ class ModelInitializer:
                         quantization_config=quantization_config,
                         **common_params,
                     ).to(self.device)
-                    model = prepare_model_for_kbit_training(model)
+                    model.config.use_cache = False
+                    model = prepare_model_for_kbit_training(
+                        model,
+                        gradient_checkpointing_kwargs={
+                            "use_reentrant": False,
+                        },
+                    )
 
                     self.logger.info(
                         f"Using 4-bit quantization with bitsandbytes (QLoRA) and torch_dtype: {torch_dtype}"
