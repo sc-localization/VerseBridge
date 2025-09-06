@@ -153,6 +153,14 @@ class TrainingPipeline:
             dataset = self.dataset_manager.get_dataset(
                 data_files=self.config.training_path_config.trained_data_files
             )
+
+            recommended_max_length = self.dataset_manager.get_recommended_max_length(
+                dataset, tokenizer, sample_size=10000
+            )
+            self.config.dataset_config = self.config.dataset_config.update_max_training_length(
+                recommended_max_length
+            )
+
             tokenized_dataset = self.dataset_manager.tokenize_dataset(
                 dataset, tokenizer
             )
