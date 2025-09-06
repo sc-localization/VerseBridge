@@ -59,10 +59,13 @@ class LogConfigType(NamedTuple):
 GenerationConfigType: TypeAlias = Dict[str, Any]
 
 
-class TokenizerConfigType(TypedDict):
+class TokenizerOptionsType(TypedDict):
     return_tensors: Literal["pt"]
     padding: bool
     truncation: bool
+
+
+class TokenizerConfigType(TokenizerOptionsType):
     max_length: int
 
 

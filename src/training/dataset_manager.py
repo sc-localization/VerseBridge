@@ -45,7 +45,7 @@ class DatasetManager:
         Returns:
             DatasetDict: The tokenized dataset.
         """
-        tokenizer_base_args = self.config.dataset_config.to_dict()
+        tokenizer_base_args = self.config.dataset_config.training_dict
 
         def tokenize_function(examples: Dict[str, List[str]]) -> BatchEncoding:
             """
