@@ -65,7 +65,7 @@ class TranslationPipeline:
             # 2. Initialize model
             model = self.model_initializer.initialize(
                 for_training=False,
-                torch_dtype=torch.float16,
+                torch_dtype=torch.float16, # torch.bfloat16 breaks the translation
                 model_cli_path=model_cli_path,
             )
 

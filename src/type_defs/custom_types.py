@@ -59,10 +59,13 @@ class LogConfigType(NamedTuple):
 GenerationConfigType: TypeAlias = Dict[str, Any]
 
 
-class TokenizerConfigType(TypedDict):
+class TokenizerOptionsType(TypedDict):
     return_tensors: Literal["pt"]
     padding: bool
     truncation: bool
+
+
+class TokenizerConfigType(TokenizerOptionsType):
     max_length: int
 
 
@@ -70,6 +73,8 @@ class Optimizer(str, Enum):
     adafactor = "adafactor"
     adamw = "adamw"
     adamw_torch = "adamw_torch"
+    paged_adamw_8bit = "adamw_bnb_8bit"
+    paged_adamw_32bit = "paged_adamw_32bit"
 
 
 class Scheduler(str, Enum):
@@ -218,6 +223,7 @@ class TranslationTrainingConfigType(TypedDict):
     optim: Optimizer
     lr_scheduler_type: Scheduler
 
+    fp16: bool
     per_device_train_batch_size: int
     per_device_eval_batch_size: int
     gradient_accumulation_steps: int

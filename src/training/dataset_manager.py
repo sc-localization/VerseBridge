@@ -12,6 +12,57 @@ class DatasetManager:
         self.config = config
         self.logger = logger
 
+    def get_recommended_max_length(
+        self,
+        dataset: DatasetDict,
+        tokenizer: PreTrainedTokenizerBase,
+        sample_size: int = 1000,
+    ) -> int:
+        """Determines the recommended max_length for the tokenizer based on the dataset.
+
+        Args:
+            dataset (DatasetDict): The dataset to analyze.
+            tokenizer (PreTrainedTokenizerBase): The tokenizer to use.
+            sample_size (int, optional): The number of samples to use for analysis. Defaults to 1000.
+
+        Returns:
+            int: The recommended max_length.
+        """
+        self.logger.debug("🔍 Analyzing sequence lengths to recommend max_length...")
+
+        ds = dataset["train"]
+        sample_size = min(sample_size, len(ds))
+        sample = ds.shuffle(seed=42).select(range(sample_size))
+
+        sample_list: List[Dict[str, str]] = sample.to_list()
+
+        all_lengths: List[int] = [
+            max(
+                len(
+                    tokenizer.encode(
+                        f"{self.config.lang_config.tgt_lang_token} {item['original']}"
+                    )
+                ),
+                len(tokenizer.encode(item["translated"])),
+            )
+            for item in sample_list
+        ]
+
+        sorted_lengths = sorted(all_lengths)
+        total = len(sorted_lengths)
+
+        p95_index = int(total * 0.95)
+        p95_len = sorted_lengths[p95_index]
+
+        recommended = ((p95_len + 7) // 8) * 8
+        recommended = min(recommended, 512)
+
+        self.logger.debug(f"📊 Sequence length statistics:")
+        self.logger.debug(f"   95% texts shorter than: {p95_len}")
+        self.logger.debug(f"🎯 Recommended max_length: {recommended}")
+
+        return recommended
+
     def get_dataset(self, data_files: JsonTrainedDataFilePathsType) -> DatasetDict:
         """Loads the dataset from JSON files specified in the config and returns it as a DatasetDict.
         Args:
@@ -27,7 +78,9 @@ class DatasetManager:
             self.logger.error("One of the datasets is empty!")
             raise ValueError("Dataset is empty")
 
-        self.logger.debug(f"Example from validation dataset: {dataset['test'][0]}")
+        self.logger.debug(
+            f"Example from validation dataset: {dataset['test'][0]}\nTrain dataset size: {len(dataset['train'])}"
+        )
 
         return dataset
 
@@ -43,7 +96,7 @@ class DatasetManager:
         Returns:
             DatasetDict: The tokenized dataset.
         """
-        tokenizer_base_args = self.config.dataset_config.to_dict()
+        tokenizer_base_args = self.config.dataset_config.training_dict
 
         def tokenize_function(examples: Dict[str, List[str]]) -> BatchEncoding:
             """

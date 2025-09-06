@@ -95,7 +95,9 @@ class Translator:
         Translate a single text.
         """
         try:
-            text = f"<2ru> {text}"  # <2tgt_lang> text
+            tgt_lang_token = self.config.lang_config.tgt_lang_token
+            text = f"{tgt_lang_token} {text}"  # <2tgt_lang> text
+
             tokens = self.tokenizer(text, **tokenizer_args).to(self.device)
             input_length = int(torch.sum(tokens.attention_mask, dim=1).max().item())  # type: ignore
 
@@ -144,7 +146,7 @@ class Translator:
         tgt_lang = lang_config.tgt_lang
 
         token_reserve = translation_config.token_reserve
-        tokenizer_args = dataset_config.to_dict()
+        tokenizer_args = dataset_config.translation_dict
         max_model_length = tokenizer_args["max_length"]
 
         language_ratio = translation_config.get_language_ratio(src_lang, tgt_lang)
