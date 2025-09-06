@@ -44,31 +44,32 @@ class TranslationTrainingConfig:
 
     # === General training parameters ===
     num_train_epochs: int = 10
-    learning_rate: float = 5e-6
+    learning_rate: float = 2e-4
     weight_decay: float = 0.01
     warmup_ratio: float = 0.05
     max_grad_norm: float = 1.0
 
     # === Optimizer and scheduler ===
-    optim: Optimizer = Optimizer.adafactor
+    optim: Optimizer = Optimizer.paged_adamw_8bit
     lr_scheduler_type: Scheduler = Scheduler.linear
 
     # === Batching and gradients ===
-    per_device_train_batch_size: int = 16
-    per_device_eval_batch_size: int = 16
-    gradient_accumulation_steps: int = 4
+    fp16: bool = True
+    per_device_train_batch_size: int = 4
+    per_device_eval_batch_size: int = 4
+    gradient_accumulation_steps: int = 32
     eval_accumulation_steps: int = 4
 
     # === Validation and saving strategies ===
     eval_strategy: Strategy = Strategy.STEPS
     eval_steps: int = 500
-    eval_on_start: bool = True
+    eval_on_start: bool = False
     predict_with_generate: bool = True
     save_strategy: Strategy = Strategy.STEPS
     save_steps: int = 500
     save_total_limit: int = 5
     load_best_model_at_end: bool = True
-    metric_for_best_model: Metric = Metric.BERTSCORE_F1
+    metric_for_best_model: Metric = Metric.BLEU
     greater_is_better: bool = True
 
     # === Logging and reporting ===

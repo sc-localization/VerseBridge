@@ -7,6 +7,7 @@ from transformers import PreTrainedTokenizerBase, EvalPrediction
 
 from src.config import ConfigManager
 from src.type_defs import MetricScoresType, LoggerType
+from src.utils import MemoryManager
 
 # Download necessary NLTK resources (run once or add to the script beginning)
 nltk.download("wordnet", quiet=True)
@@ -19,6 +20,7 @@ class MetricsCalculator:
         config: ConfigManager,
         tokenizer: PreTrainedTokenizerBase,
         logger: LoggerType,
+        use_bertscore: bool = False,
     ) -> None:
         """
         Initializes MetricsCalculator with the required components.
@@ -27,10 +29,13 @@ class MetricsCalculator:
             config (ConfigManager): An instance of ConfigManager for configuration.
             tokenizer (PreTrainedTokenizerBase): An instance of PreTrainedTokenizerBase for tokenization.
             logger (LoggerType): A logger for logging operations.
+            use_bertscore (bool): Whether to compute BERTScore. Default is False.
         """
         self.config = config
         self.logger = logger
         self.tokenizer = tokenizer
+        self.memory_manager = MemoryManager(self.logger)
+        self.use_bertscore = use_bertscore
 
     def compute_metrics(
         self,
@@ -45,6 +50,8 @@ class MetricsCalculator:
         Returns:
             MetricScoresType: A dictionary containing the following metrics: BLEU, ChrF, METEOR, and BERTScore F1.
         """
+        self.memory_manager.clear()
+
         preds, labels = eval_preds
 
         if isinstance(preds, tuple):
@@ -81,18 +88,21 @@ class MetricsCalculator:
         ]
         meteor_avg = float(np.mean(meteor_scores) * 100)
 
-        # BERTScore
-        P, R, F1 = bert_score(  # type: ignore
-            decoded_preds_clean,
-            decoded_labels_clean,
-            lang=self.config.lang_config.tgt_lang,
-        )
-
-        bertscore_f1 = F1.mean().item() * 100
-
-        return {
+        metrics = {
             "bleu": bleu_result,
             "chrf": chrf_result,
             "meteor": meteor_avg,
-            "bertscore_f1": bertscore_f1,
         }
+
+        if self.use_bertscore:
+            self.memory_manager.clear()
+
+            # BERTScore
+            P, R, F1 = bert_score(  # type: ignore
+                decoded_preds_clean,
+                decoded_labels_clean,
+                lang=self.config.lang_config.tgt_lang,
+            )
+            metrics["bertscore_f1"] = F1.mean().item() * 100
+
+        return metrics

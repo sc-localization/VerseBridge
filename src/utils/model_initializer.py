@@ -1,10 +1,16 @@
 import logging
 import torch
-from peft import PeftModel, get_peft_model, PeftMixedModel
+from peft import (
+    PeftModel,
+    get_peft_model,
+    PeftMixedModel,
+    prepare_model_for_kbit_training,
+)
 from transformers import (
     AutoModelForSeq2SeqLM,
     AutoModelForTokenClassification,
     PreTrainedModel,
+    BitsAndBytesConfig,
 )
 
 from pathlib import Path
@@ -42,18 +48,19 @@ class ModelInitializer:
         self,
         model_name: ModelPathOrName,
         for_training: bool,
-        torch_dtype: torch.dtype = torch.float16,
-    ) -> PreTrainedModel:
+        torch_dtype: torch.dtype,
+        use_lora: bool = False,
+    ) -> InitializedModelType:
         """
         Loads a base model with safety checks and error handling.
 
         Args:
             model_name (ModelPathOrName): The name of the model to load.
-            torch_dtype (torch.dtype, optional): The data type for the model's tensors.
-                Defaults to torch.float16.
+            torch_dtype (torch.dtype): The data type for the model's tensors.
+            use_lora (bool): Whether to apply LoRA adapters. Defaults to False.
 
         Returns:
-            PreTrainedModel: The loaded sequence-to-sequence model.
+            InitializedModelType: The loaded sequence-to-sequence model.
 
         Raises:
             ValueError: If the model name is empty or if loading the model fails.
@@ -64,27 +71,60 @@ class ModelInitializer:
         if not model_name:
             raise ValueError("Model name cannot be empty")
 
-        common_params = {
-            "torch_dtype": torch_dtype,
-            "device_map": "auto",
-        }
+        common_params = {"torch_dtype": torch_dtype, "device_map": "auto"}
 
         try:
             if self.task == "translation":
-                return AutoModelForSeq2SeqLM.from_pretrained(
-                    model_name, **common_params
-                ).to(self.device)
+                if use_lora and for_training:
+                    # https://huggingface.co/docs/bitsandbytes/main/en/integrations
+                    quantization_config = BitsAndBytesConfig(
+                        load_in_4bit=True,
+                        bnb_4bit_quant_type="nf4",
+                        bnb_4bit_compute_dtype=torch_dtype,
+                        bnb_4bit_use_double_quant=True,
+                        bnb_4bit_quant_storage=torch_dtype,
+                    )
+
+                    model = AutoModelForSeq2SeqLM.from_pretrained(
+                        model_name,
+                        quantization_config=quantization_config,
+                        **common_params,
+                    ).to(self.device)
+                    model.config.use_cache = False
+                    model = prepare_model_for_kbit_training(
+                        model,
+                        gradient_checkpointing_kwargs={
+                            "use_reentrant": False,
+                        },
+                    )
+
+                    self.logger.info(
+                        f"Using 4-bit quantization with bitsandbytes (QLoRA) and torch_dtype: {torch_dtype}"
+                    )
+
+                    return model
+                else:
+                    model = AutoModelForSeq2SeqLM.from_pretrained(
+                        model_name, **common_params
+                    ).to(self.device)
+
+                    return model
+
             elif self.task == "ner":
                 if for_training:
-                    return AutoModelForTokenClassification.from_pretrained(
+                    model = AutoModelForTokenClassification.from_pretrained(
                         model_name,
                         **common_params,
                         **self.config.ner_config.ner_label_config,
                     ).to(self.device)
+
+                    return model
                 else:
-                    return AutoModelForTokenClassification.from_pretrained(
+                    model = AutoModelForTokenClassification.from_pretrained(
                         model_name, **common_params
                     ).to(self.device)
+
+                    return model
             else:
                 raise ValueError(f"Unknown mode: {self.task}")
 
@@ -247,7 +287,9 @@ class ModelInitializer:
                 f"Loading training model for {self.task} (LoRA={use_lora}): {model_name}"
             )
 
-            model = self._load_base_model(model_name, for_training, torch_dtype)
+            model = self._load_base_model(
+                model_name, for_training, torch_dtype, use_lora
+            )
             model = self._apply_lora(model)
         else:
             load_path = model_path_or_name
@@ -264,7 +306,9 @@ class ModelInitializer:
 
                 load_path = model_name
 
-            model = self._load_base_model(load_path, for_training, torch_dtype)
+            model = self._load_base_model(
+                load_path, for_training, torch_dtype, use_lora
+            )
 
         return model
 
@@ -298,11 +342,14 @@ class ModelInitializer:
                 ),
                 for_training,
                 torch_dtype,
+                use_lora,
             )
 
             return PeftModel.from_pretrained(base_model, model_path_or_name)
 
-        return self._load_base_model(model_path_or_name, for_training, torch_dtype)
+        return self._load_base_model(
+            model_path_or_name, for_training, torch_dtype, use_lora
+        )
 
     def initialize(
         self,
@@ -315,7 +362,7 @@ class ModelInitializer:
 
         Args:
             for_training (bool): Whether to initialize model for training.
-            torch_dtype (torch.dtype, optional): The dtype of the model's tensors. Defaults to torch.float16.
+            torch_dtype (torch.dtype): The dtype of the model's tensors. Defaults to torch.float16.
             model_path (ModelCLIType): The path to the model directory. Defaults to None.
             with_lora (bool, optional): Whether to use LoRA adapters. Defaults to False.
 
@@ -363,7 +410,7 @@ class ModelInitializer:
             self.model_config.result_path = result_path
             self.model_config.checkpoints_path = checkpoints_path
             self.logger.debug(
-                f"Resolved pathsfor {self.task}: result={result_path}, checkpoints={checkpoints_path}"
+                f"Resolved paths for {self.task}: result={result_path}, checkpoints={checkpoints_path}"
             )
 
             self.logger.info(
