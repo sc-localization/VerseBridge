@@ -146,7 +146,7 @@ class Translator:
         tgt_lang = lang_config.tgt_lang
 
         token_reserve = translation_config.token_reserve
-        tokenizer_args = dataset_config.to_dict()
+        tokenizer_args = dataset_config.translation_dict
         max_model_length = tokenizer_args["max_length"]
 
         language_ratio = translation_config.get_language_ratio(src_lang, tgt_lang)
