@@ -1,3 +1,11 @@
+> [!NOTE]
+> Please prefer English language for all communication.
+
+## Creating an issue
+
+Before creating an issue please ensure that the problem is not [already reported](https://github.com/sc-localization/VerseBridge/issues).
+
+
 ## How to Contribute
 
 Thank you for your interest in contributing to the Star Citizen Translator project! To help you get started, please follow these steps:
@@ -7,7 +15,7 @@ Thank you for your interest in contributing to the Star Citizen Translator proje
    First, create your own copy of the repository by clicking the "Fork" button on GitHub. Then, clone your fork to your local machine:
 
    ```sh
-   git clone https://github.com/<your-username>/VerseBridge.git
+   git clone https://github.com/sc-localization/VerseBridge.git
    cd VerseBridge
    ```
 
@@ -52,6 +60,25 @@ Thank you for your interest in contributing to the Star Citizen Translator proje
 
    Go to the original repository and open a Pull Request (PR) from your branch. Include a detailed description of your changes and reference any related issues.
 
----
+## Commit messages
+
+Commit messages should follow the [Conventional Commits](https://conventionalcommits.org) specification:
+
+```
+<type>[optional scope]: <description>
+```
+
+### Allowed `<type>`
+
+- `chore`: any repository maintainance changes
+- `feat`: code change that adds a new feature
+- `fix`: bug fix
+- `perf`: code change that improves performance
+- `refactor`: code change that is neither a feature addition nor a bug fix nor a performance improvement
+- `docs`: documentation only changes
+- `ci`: a change made to CI configurations and scripts
+- `style`: cosmetic code change
+- `test`: change that only adds or corrects tests
+- `revert`: change that reverts previous commits
 
 If you have any questions or need help, feel free to open an issue or ask in the discussions section. We appreciate your contributions!

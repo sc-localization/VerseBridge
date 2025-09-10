@@ -47,14 +47,14 @@ class TranslationTrainingConfig:
     learning_rate: float = 2e-4
     weight_decay: float = 0.01
     warmup_ratio: float = 0.05
-    max_grad_norm: float = 1.0
+    max_grad_norm: float = 0.5
 
     # === Optimizer and scheduler ===
     optim: Optimizer = Optimizer.paged_adamw_8bit
     lr_scheduler_type: Scheduler = Scheduler.linear
 
     # === Batching and gradients ===
-    fp16: bool = True
+    bf16: bool = True
     per_device_train_batch_size: int = 4
     per_device_eval_batch_size: int = 4
     gradient_accumulation_steps: int = 32
