@@ -57,10 +57,15 @@ class MetricsCalculator:
         if isinstance(preds, tuple):
             preds = preds[0]
 
+        max_length = self.config.dataset_config.max_training_length
+
         labels = np.where(labels != -100, labels, self.tokenizer.pad_token_id)  # type: ignore
+        truncated_labels = [label[:max_length] for label in labels]
 
         decoded_preds = self.tokenizer.batch_decode(preds, skip_special_tokens=True)
-        decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
+        decoded_labels = self.tokenizer.batch_decode(
+            truncated_labels, skip_special_tokens=True
+        )
 
         decoded_preds_clean = [pred.strip(".").lower() for pred in decoded_preds]
         decoded_labels_clean = [label.strip(".").lower() for label in decoded_labels]
