@@ -12,7 +12,8 @@
 
 <br>
 
-> **Tested on**: _WSL Ubuntu 22.04_, _NVIDIA CUDA 12.8_, _12GB 4070 GPU_
+> [!NOTE]
+> **Tested on**: WSL Ubuntu 22.04, NVIDIA CUDA 12.8, 12GB 4070 GPU
 
 **Documentation**: [Русский](doc/README_RU.md)
 
@@ -32,9 +33,9 @@ NER can be used as an auxiliary step before translation: first, entities are ext
 
 ## Installation
 
+> [!WARNING]
 > Requires Python 3.10 and NVIDIA GPU with **CUDA 12.8** support.
-
-**Note:** CUDA 12.8 is required for pytorch compatibility
+> CUDA 12.8 is required for pytorch compatibility
 
 To install CUDA on WSL Ubuntu 22.04 follow the [instructions](https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&Distribution=WSL-Ubuntu&target_version=2.0&target_type=deb_network) or run:
 
@@ -89,7 +90,7 @@ uv run -m scripts.run_preprocess
 1. **Configure Paths**:
 
 - Update `src/config/paths.py` with paths to original and translated `.ini` files (e.g., `global_original.ini`, `global_pre_translated.ini`).
-- Set `target_lang_code` in `src/config/language.py` (e.g., `rus_Cyrl` for Russian) using [FLORES-200 codes](https://github.com/facebookresearch/flores/blob/main/flores200/README.md#languages-in-flores-200).
+- Set `target_lang_code` in `src/config/language.py`
 
 2. **Place Files**:
 
