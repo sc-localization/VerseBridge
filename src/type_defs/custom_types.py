@@ -223,7 +223,7 @@ class TranslationTrainingConfigType(TypedDict):
     optim: Optimizer
     lr_scheduler_type: Scheduler
 
-    fp16: bool
+    bf16: bool
     per_device_train_batch_size: int
     per_device_eval_batch_size: int
     gradient_accumulation_steps: int
