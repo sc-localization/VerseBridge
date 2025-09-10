@@ -30,11 +30,15 @@ class DatasetManager:
         """
         self.logger.debug("🔍 Analyzing sequence lengths to recommend max_length...")
 
-        ds = dataset["train"]
-        sample_size = min(sample_size, len(ds))
-        sample = ds.shuffle(seed=42).select(range(sample_size))
+        ds_train = dataset["train"]
+        ds_test = dataset["test"]
+        sample_size = min(sample_size, min(len(ds_train), len(ds_test)))
+        sample_train = ds_train.shuffle(seed=42).select(range(sample_size))
+        sample_test = ds_test.shuffle(seed=42).select(range(sample_size))
 
-        sample_list: List[Dict[str, str]] = sample.to_list()
+        sample_list: List[Dict[str, str]] = (
+            sample_train.to_list() + sample_test.to_list()
+        )
 
         all_lengths: List[int] = [
             max(
