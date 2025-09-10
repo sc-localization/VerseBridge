@@ -6,7 +6,7 @@ from src.type_defs import LoraTargetModulesType
 
 @dataclass
 class LoraConfig(PeftLoraConfig):
-    r: int = 8
+    r: int = 16
     lora_alpha: int = 32
     lora_dropout: float = 0.05
     target_modules: LoraTargetModulesType = field(
