@@ -144,7 +144,7 @@ class TrainingPipeline:
             # 2. Initialize model
             model = self.model_initializer.initialize(
                 for_training=True,
-                torch_dtype=torch.float16,
+                torch_dtype=torch.bfloat16,
                 model_cli_path=model_cli_path,
                 with_lora=with_lora,
             )
