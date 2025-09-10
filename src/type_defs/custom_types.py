@@ -71,7 +71,6 @@ class TokenizerConfigType(TokenizerOptionsType):
 
 class Optimizer(str, Enum):
     adafactor = "adafactor"
-    adamw = "adamw"
     adamw_torch = "adamw_torch"
     paged_adamw_8bit = "adamw_bnb_8bit"
     paged_adamw_32bit = "paged_adamw_32bit"
