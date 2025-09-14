@@ -32,9 +32,11 @@ class DatasetManager:
 
         ds_train = dataset["train"]
         ds_test = dataset["test"]
-        sample_size = min(sample_size, min(len(ds_train), len(ds_test)))
-        sample_train = ds_train.shuffle(seed=42).select(range(sample_size))
-        sample_test = ds_test.shuffle(seed=42).select(range(sample_size))
+        train_sample_size = min(sample_size, len(ds_train))
+        test_sample_size = min(sample_size, len(ds_test))
+        sample_train = ds_train.shuffle(seed=42).select(range(train_sample_size))
+        sample_test = ds_test.shuffle(seed=42).select(range(test_sample_size))
+        sample_list = sample_train.to_list() + sample_test.to_list()
 
         sample_list: List[Dict[str, str]] = (
             sample_train.to_list() + sample_test.to_list()
