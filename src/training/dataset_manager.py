@@ -55,14 +55,14 @@ class DatasetManager:
         sorted_lengths = sorted(all_lengths)
         total = len(sorted_lengths)
 
-        p95_index = int(total * 0.95)
-        p95_len = sorted_lengths[p95_index]
+        p98_index = int(total * 0.98)
+        p98_len = sorted_lengths[p98_index]
 
-        recommended = ((p95_len + 7) // 8) * 8
-        recommended = min(recommended, 512)
+        recommended = ((p98_len + 7) // 8) * 8
+        recommended = min(recommended, self.config.dataset_config.max_training_length) 
 
         self.logger.debug(f"📊 Sequence length statistics:")
-        self.logger.debug(f"   95% texts shorter than: {p95_len}")
+        self.logger.debug(f"   98% texts shorter than: {p98_len}")
         self.logger.debug(f"🎯 Recommended max_length: {recommended}")
 
         return recommended
