@@ -108,6 +108,6 @@ class MetricsCalculator:
                 decoded_labels_clean,
                 lang=self.config.lang_config.tgt_lang,
             )
-            metrics["bertscore_f1"] = F1.mean().item() * 100
+            metrics["bertscore_f1"] = F1.mean().item() * 100 # type: ignore
 
         return metrics
