@@ -223,10 +223,10 @@ class TextCleaner:
         for item in tqdm(data, desc="Cleaning data"):
             original_text: CleanedINIFIleValueType = self.clean_text(
                 item.get("original", ""), remove_patterns=False
-            ).lower()
+            )
             translated_text: CleanedINIFIleValueType = self.clean_text(
                 item.get("translated", ""), remove_patterns=False
-            ).lower()
+            )
 
             if not original_text or not translated_text:
                 self.removed_count["empty"] += 1
