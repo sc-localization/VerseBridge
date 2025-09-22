@@ -1,4 +1,5 @@
 import logging
+import os
 from pathlib import Path
 
 from src.type_defs import BufferType, TranslatedIniLineType
@@ -52,6 +53,8 @@ class BufferedFileWriter:
         if self.buffer and self.file:
             try:
                 self.file.writelines(self.buffer)
+                self.file.flush()
+                os.fsync(self.file.fileno())
                 self.buffer.clear()
                 self.memory_manager.clear()
             except Exception as e:
