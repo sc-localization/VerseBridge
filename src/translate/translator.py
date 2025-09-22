@@ -1,6 +1,7 @@
 import torch
 from transformers import BatchEncoding
 from typing import List, Optional, Any
+from tqdm import tqdm
 
 from src.config import ConfigManager
 from src.type_defs import (
@@ -73,32 +74,32 @@ class Translator:
         Calculate min and max new tokens for generation.
         """
         min_new_tokens = None
-
         max_new_tokens = max_model_length - input_length - token_reserve
 
         if max_new_tokens <= 0:
             self.logger.warning(
                 f"Input length ({input_length}) exceeds model limit ({max_model_length})"
             )
-
             max_new_tokens = max(50, max_model_length - input_length)
 
         return min_new_tokens, max_new_tokens
 
     def _translate_single_text(
         self,
-        text: INIFIleValueType,
+        texts: List[INIFIleValueType],
         tokenizer_args: TokenizerConfigType,
         cached_params: CachedParamsType,
-    ) -> TranslatedIniValueType:
+    ) -> List[TranslatedIniValueType]:
         """
-        Translate a single text.
+        Translate a single text or batch of texts.
         """
         try:
             tgt_lang_token = self.config.lang_config.tgt_lang_token
-            text = f"{tgt_lang_token} {text}"  # <2tgt_lang> text
+            # Добавляем языковой токен к каждому тексту
+            prefixed_texts = [f"{tgt_lang_token} {text}" for text in texts]
 
-            tokens = self.tokenizer(text, **tokenizer_args).to(self.device)
+            # Токенизация батча
+            tokens = self.tokenizer(prefixed_texts, **tokenizer_args).to(self.device)
             input_length = int(torch.sum(tokens.attention_mask, dim=1).max().item())  # type: ignore
 
             min_new_tokens, max_new_tokens = self._calculate_token_limits(
@@ -107,20 +108,22 @@ class Translator:
                 cached_params["token_reserve"],
             )
 
+            # Генерация переводов
             translated_tokens = self._generate_translation(
                 tokens,
                 max_new_tokens,
                 min_new_tokens,
             )
 
-            translated_text = self.tokenizer.batch_decode(
+            # Декодирование результатов
+            decoded_texts = self.tokenizer.batch_decode(
                 translated_tokens, skip_special_tokens=True
-            )[0].strip()
+            )
 
-            return translated_text
+            return decoded_texts
 
         except Exception as e:
-            self.logger.error(f"Failed to translate text: '{text[:100]}...' - {str(e)}")
+            self.logger.error(f"Failed to translate text: {str(e)}")
             raise
 
     def _should_split_text(
@@ -161,38 +164,51 @@ class Translator:
         )
 
         def translate(texts: List[INIFIleValueType]) -> List[TranslatedIniValueType]:
+            """
+            Translate a list of texts, handling splitting when necessary.
+            """
             if not texts:
                 self.logger.warning("Empty input text list provided")
-
                 return []
 
-            translated_texts: List[str] = []
+            translated_texts: List[TranslatedIniValueType] = []
+
+            # Since almost all texts will have roughly the same length, we assume that at least one of them needs to be split into parts.
+            is_any_text_too_long = any(
+                self._should_split_text(text, tokenizer_args, max_inputs_allowed)
+                for text in texts
+            )
 
             try:
-                for text in texts:
-                    if self._should_split_text(
-                        text, tokenizer_args, max_inputs_allowed
-                    ):
-                        self.logger.debug("Text too long, splitting...")
+                if is_any_text_too_long:
+                    self.logger.debug(
+                        "Some texts are too long, processing with splitting..."
+                    )
 
+                    for i, text in enumerate(texts):
                         chunks = self.text_processor.split_text(
                             text, self.tokenizer, max_inputs_allowed, tokenizer_args
                         )
 
-                        translated_chunks = [
-                            self._translate_single_text(
-                                chunk, tokenizer_args, cached_params
-                            )
-                            for chunk in chunks
-                        ]
+                        self.logger.debug(f"Text {i} split into {len(chunks)} chunks")
 
-                        translated_texts.append(" ".join(translated_chunks))
-                    else:
-                        translated_text = self._translate_single_text(
-                            text, tokenizer_args, cached_params
-                        )
+                        translated_chunks: List[TranslatedIniValueType] = []
 
+                        # Translate chunks one by one, as translating a batch leads to dependence on the order of the chunks.
+                        for chunk in tqdm(chunks, desc=f"Translating chunks"):
+                            chunk_result = self._translate_single_text(
+                                [chunk], tokenizer_args, cached_params
+                            )[0]
+
+                            translated_chunks.append(chunk_result)
+
+                        translated_text = " ".join(translated_chunks)
                         translated_texts.append(translated_text)
+
+                else:
+                    translated_texts = self._translate_single_text(
+                        texts, tokenizer_args, cached_params
+                    )
 
                 return translated_texts
 
