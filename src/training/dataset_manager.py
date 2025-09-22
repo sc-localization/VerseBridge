@@ -32,9 +32,11 @@ class DatasetManager:
 
         ds_train = dataset["train"]
         ds_test = dataset["test"]
-        sample_size = min(sample_size, min(len(ds_train), len(ds_test)))
-        sample_train = ds_train.shuffle(seed=42).select(range(sample_size))
-        sample_test = ds_test.shuffle(seed=42).select(range(sample_size))
+        train_sample_size = min(sample_size, len(ds_train))
+        test_sample_size = min(sample_size, len(ds_test))
+        sample_train = ds_train.shuffle(seed=42).select(range(train_sample_size))
+        sample_test = ds_test.shuffle(seed=42).select(range(test_sample_size))
+        sample_list = sample_train.to_list() + sample_test.to_list()
 
         sample_list: List[Dict[str, str]] = (
             sample_train.to_list() + sample_test.to_list()
@@ -55,14 +57,14 @@ class DatasetManager:
         sorted_lengths = sorted(all_lengths)
         total = len(sorted_lengths)
 
-        p95_index = int(total * 0.95)
-        p95_len = sorted_lengths[p95_index]
+        p98_index = int(total * 0.98)
+        p98_len = sorted_lengths[p98_index]
 
-        recommended = ((p95_len + 7) // 8) * 8
-        recommended = min(recommended, 512)
+        recommended = ((p98_len + 7) // 8) * 8
+        recommended = min(recommended, self.config.dataset_config.max_training_length) 
 
         self.logger.debug(f"📊 Sequence length statistics:")
-        self.logger.debug(f"   95% texts shorter than: {p95_len}")
+        self.logger.debug(f"   98% texts shorter than: {p98_len}")
         self.logger.debug(f"🎯 Recommended max_length: {recommended}")
 
         return recommended

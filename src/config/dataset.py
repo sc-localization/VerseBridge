@@ -6,8 +6,9 @@ from src.type_defs import TokenizerOptionsType, TokenizerConfigType
 @dataclass
 class DatasetConfig:
     max_model_length: int = 1024  # tokenizer.model_max_length
-    max_training_length: int = 128
+    max_training_length: int = 256
     data_split_ratio: float = 0.9
+    sample_size_for_recommendation: int = 20000
 
     @classmethod
     def _to_dict(cls) -> TokenizerOptionsType:
