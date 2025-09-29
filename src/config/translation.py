@@ -54,7 +54,7 @@ class TranslationConfig:
 
     @classmethod
     def get_p_template(cls, index: int) -> str:
-        return cls._get_template(index, "pp@pp")
+        return cls._get_template(index, "LOCATION_OR_ACTIONS")
 
     @classmethod
     def get_ner_template(cls, index: int) -> str:
