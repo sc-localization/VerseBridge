@@ -12,8 +12,7 @@
 
 <br>
 
-> [!NOTE]
-> **Tested on**: WSL Ubuntu 22.04, NVIDIA CUDA 12.8, 12GB 4070 GPU
+> [!NOTE] > **Tested on**: WSL Ubuntu 22.04, NVIDIA CUDA 12.8, 12GB 4070 GPU
 
 **Documentation**: [Русский](doc/README_RU.md)
 
@@ -72,6 +71,9 @@ To install CUDA on WSL Ubuntu 22.04 follow the [instructions](https://developer.
    ```
 
 ## Usage
+
+> [!IMPORTANT]
+> It is highly recommended to use a fine-tuned model for translation, as it will significantly improve the quality of the translation. Additionally, fine-tuning will allow the model to better understand the context and nuances of the game, resulting in more accurate and natural-sounding translations. To fine-tune the model, you will need to prepare a dataset of annotated examples and train the model on this dataset. The more data you have, the better the model will perform. Fine-tuning will also allow you to adapt the model to the specific style and tone of the game, which is important for creating a high-quality localization.
 
 ---
 
