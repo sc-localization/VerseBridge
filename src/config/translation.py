@@ -50,11 +50,13 @@ class TranslationConfig:
 
     @classmethod
     def _get_template(cls, index: int, prefix: str) -> str:
-        return "[%s%d]" % (prefix, index)
+        return "[%d%s]" % (index, prefix)
 
     @classmethod
     def get_p_template(cls, index: int) -> str:
-        return cls._get_template(index, "LOCATION_OR_ACTIONS")
+        return cls._get_template(
+            index, "LOCATION_OR_ACTIONS"
+        )  # For an original model without fine tuning, the best template would be pp@pp or similar.
 
     @classmethod
     def get_ner_template(cls, index: int) -> str:
@@ -66,12 +68,12 @@ class TranslationConfig:
 
     @classmethod
     def get_p_regex(cls) -> str:
-        template = cls.get_p_template(0)  # [[PP0]]
+        template = cls.get_p_template(0)
         return re.escape(template).replace("0", r"\d+")
 
     @classmethod
     def get_ner_regex(cls) -> str:
-        template = cls.get_ner_template(0)  # [[NN0]]
+        template = cls.get_ner_template(0)
         return re.escape(template).replace("0", r"\d+")
 
     @classmethod
