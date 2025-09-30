@@ -202,7 +202,7 @@ class FileUtils:
             with output_file.open("w", encoding="utf-8") as file:
                 json.dump(data, file, ensure_ascii=False, indent=2)
 
-            self.logger.info(f"Saved JSON to {output_file}")
+            self.logger.debug(f"Saved JSON to {output_file}")
         except Exception as e:
             self.logger.error(f"Failed to save JSON to {output_file}: {str(e)}")
             raise
