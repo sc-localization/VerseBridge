@@ -22,7 +22,7 @@ class DatasetConfig:
     def translation_dict(self) -> TokenizerConfigType:
         return {
             **self._to_dict(),
-            "max_length": int(self.max_model_length),
+            "max_length": int(self.max_model_length / 2),
         }
 
     @property
