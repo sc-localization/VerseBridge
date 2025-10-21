@@ -12,7 +12,8 @@
 
 <br>
 
-> [!NOTE] > **Проверено на**: _WSL Ubuntu 22.04_, _NVIDIA CUDA 12.8_, _12GB 4070 GPU_
+> [!NOTE] 
+> **Проверено на**: _WSL Ubuntu 22.04_, _NVIDIA CUDA 12.8_, _12GB 4070 GPU_
 
 **Документация**: [English](../README.md)
 
