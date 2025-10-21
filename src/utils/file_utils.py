@@ -46,8 +46,11 @@ class FileUtils:
         self.logger.debug(f"Parsing INI file: {file_path}")
 
         try:
-            with file_path.open(encoding="utf-8-sig") as file:
+            with file_path.open(encoding="latin-1") as file:
                 for line in file:
+                    # Clean string from BOM (Byte Order Mark) before processing
+                    # lstrip removes all specified characters from the start of the string.
+                    line = line.lstrip("ï»¿\ufeff")
                     line = line.strip()
 
                     if not line or line.startswith(";"):
@@ -69,6 +72,7 @@ class FileUtils:
 
                     data[key] = value
 
+            self.logger.debug(f"Check parsed data: {list(data)[:5]}...")
             self.logger.debug(f"Parsed {len(data)} key-value pairs from {file_path}")
 
             return data
