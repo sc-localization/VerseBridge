@@ -12,7 +12,8 @@
 
 <br>
 
-> [!NOTE] > **Tested on**: WSL Ubuntu 22.04, NVIDIA CUDA 12.8, 12GB 4070 GPU
+> [!NOTE] 
+> **Tested on**: WSL Ubuntu 22.04, NVIDIA CUDA 12.8, 12GB 4070 GPU
 
 **Documentation**: [Русский](doc/README_RU.md)
 
