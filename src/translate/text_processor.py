@@ -147,92 +147,119 @@ class TextProcessor:
 
         return result
 
+    def _get_token_count(
+        self,
+        text: str,
+        tokenizer: PreTrainedTokenizerBase,
+        tokenizer_args: TokenizerConfigType,
+    ) -> int:
+        """Calculate the token count for a given text."""
+        tokens = tokenizer(text, **tokenizer_args)
+
+        return len(tokens["input_ids"][0])  # type: ignore
+
+    def _truncate_text(
+        self,
+        text: str,
+        tokenizer: PreTrainedTokenizerBase,
+        max_tokens: int,
+        tokenizer_args: TokenizerConfigType,
+    ) -> str:
+        """Truncate text to fit within max_tokens."""
+        tokens = tokenizer(text, **tokenizer_args)
+        truncated_ids = tokens["input_ids"][0][:max_tokens]  # type: ignore
+
+        return tokenizer.decode(truncated_ids, skip_special_tokens=True)
+
+    def _split_by_midpoint(self, text: str) -> List[str]:
+        """Split text at a safe midpoint (preferably at a space) if it exceeds max_tokens."""
+        mid_point = len(text) // 2
+        safe_split_index = text.find(" ", mid_point - 50, mid_point + 50)
+
+        if safe_split_index == -1:
+            safe_split_index = mid_point
+
+        return [text[:safe_split_index].strip(), text[safe_split_index:].strip()]
+
     def _split_recursively(
         self,
         text: str,
         tokenizer: PreTrainedTokenizerBase,
         max_tokens: int,
         tokenizer_args: TokenizerConfigType,
-        depth: int,
-        max_depth: int,
+        depth: int = 0,
+        max_depth: int = 5,
     ) -> List[str]:
         """
-        Recursive helper to split a text that is known to be too long.
-        This version splits by newline placeholders first, as it's a less aggressive
-        and more semantically meaningful splitting strategy than using spaces.
+        Recursively split text into chunks smaller than max_tokens.
+        Prioritizes splitting by newlines, then by midpoint if necessary.
         """
         if depth >= max_depth:
             self.logger.warning(
-                f"Max split depth {max_depth} reached. Truncating oversized text segment."
+                f"Max split depth {max_depth} reached. Truncating text."
             )
-            tokens = tokenizer(text, **tokenizer_args)
-            truncated_ids = tokens["input_ids"][0][:max_tokens]  # type: ignore
 
-            return [tokenizer.decode(truncated_ids, skip_special_tokens=True)]
+            return [self._truncate_text(text, tokenizer, max_tokens, tokenizer_args)]
 
-        nl_placeholder = self.translation_config.get_nl_template()
-        nl_placeholder_escaped = re.escape(nl_placeholder)
+        # Check if text is already within token limit
+        token_count = self._get_token_count(text, tokenizer, tokenizer_args)
 
-        split_patterns = [
-            f"({nl_placeholder_escaped}{nl_placeholder_escaped})",  # Double newline (\n\n -> [0][0])
-            f"({nl_placeholder_escaped})",  # Single newline (\n -> [0])
-            r"([,;:])",
-        ]
+        if token_count <= max_tokens:
+            return [text]
 
-        for pattern in split_patterns:
-            if not pattern:
-                continue
+        # Try splitting by newline placeholders
+        nl_placeholder = re.escape(self.translation_config.get_nl_template())
+        parts = re.split(f"{nl_placeholder}+", text)
+        parts = [part.strip() for part in parts if part.strip()]
 
-            try:
-                parts: List[str] = re.split(pattern, text)
-            except re.error as e:
-                self.logger.error(f"Regex error on pattern '{pattern}': {e}")
-                continue
+        if len(parts) > 1:
+            chunks = []
 
-            if len(parts) > 1:
-                merged_parts: List[str] = []
+            for part in parts:
+                part_token_count = self._get_token_count(
+                    part, tokenizer, tokenizer_args
+                )
 
-                for i in range(0, len(parts), 2):
-                    part = parts[i]
-
-                    if i + 1 < len(parts):
-                        part += parts[i + 1]
-
-                    if part:
-                        merged_parts.append(part)
-
-                # Recursively process the new, smaller parts
-                sub_chunks: List[str] = []
-
-                for part in merged_parts:
-                    part_token_len = len(
-                        tokenizer(part, **tokenizer_args)["input_ids"][0]  # type: ignore
-                    )
-
-                    if part_token_len > max_tokens:
-                        sub_chunks.extend(
-                            self._split_recursively(
-                                part,
-                                tokenizer,
-                                max_tokens,
-                                tokenizer_args,
-                                depth + 1,
-                                max_depth,
-                            )
+                if part_token_count > max_tokens:
+                    chunks.extend(
+                        self._split_recursively(
+                            part,
+                            tokenizer,
+                            max_tokens,
+                            tokenizer_args,
+                            depth + 1,
+                            max_depth,
                         )
-                    else:
-                        sub_chunks.append(part)
+                    )
+                else:
+                    chunks.append(part)
 
-                return sub_chunks
+            return chunks
 
-        self.logger.warning(
-            "Could not split text further with available patterns. Truncating."
-        )
+        # Fallback to midpoint splitting
+        self.logger.debug("No newline split possible. Splitting by midpoint.")
 
-        tokens = tokenizer(text, **tokenizer_args)
-        truncated_ids = tokens["input_ids"][0][:max_tokens]  # type: ignore
+        parts = self._split_by_midpoint(text)
+        chunks = []
 
-        return [tokenizer.decode(truncated_ids, skip_special_tokens=True)]
+        for part in parts:
+            part_token_count = self._get_token_count(part, tokenizer, tokenizer_args)
+
+            if part_token_count > max_tokens:
+                chunks.extend(
+                    self._split_recursively(
+                        part,
+                        tokenizer,
+                        max_tokens,
+                        tokenizer_args,
+                        depth + 1,
+                        max_depth,
+                    )
+                )
+            else:
+                chunks.append(part)
+
+        return chunks
 
     def split_text(
         self,
@@ -243,54 +270,51 @@ class TextProcessor:
         max_depth: int = 5,
     ) -> List[str]:
         """
-        Splits text into chunks that are smaller than max_tokens.
-
-        This refactored version improves performance by:
-        1.  Tokenizing each sentence only once.
-        2.  Avoiding repeated string concatenation and re-tokenization in a loop.
-        3.  Grouping sentences efficiently before performing more complex recursive splits
-            only on sentences that are individually too long.
+        Split text into chunks smaller than max_tokens, optimizing for performance.
+        Sentences are grouped efficiently, and only oversized segments are split recursively.
         """
-        final_chunks: List[str] = []
-        current_chunk_sentences: List[str] = []
-        current_chunk_token_count = 0
+        # Early return for short texts
+        if self._get_token_count(text, tokenizer, tokenizer_args) <= max_tokens:
+            return [text]
+
+        chunks = []
+        current_chunk = []
+        current_token_count = 0
 
         sentences = sent_tokenize(text)
-
         for sentence in sentences:
-            sentence_token_len = len(
-                tokenizer(sentence, **tokenizer_args)["input_ids"][0]  # type: ignore
+            sentence_token_count = self._get_token_count(
+                sentence, tokenizer, tokenizer_args
             )
 
-            # Case 1: A single sentence is too long and must be split recursively.
-            if sentence_token_len > max_tokens:
-                if current_chunk_sentences:
-                    final_chunks.append(" ".join(current_chunk_sentences))
-                    current_chunk_sentences = []
-                    current_chunk_token_count = 0
-
-                sub_chunks = self._split_recursively(
-                    sentence, tokenizer, max_tokens, tokenizer_args, 0, max_depth
+            if sentence_token_count > max_tokens:
+                # Flush current chunk if any
+                if current_chunk:
+                    chunks.append(" ".join(current_chunk))
+                    current_chunk = []
+                    current_token_count = 0
+                # Split oversized sentence recursively
+                chunks.extend(
+                    self._split_recursively(
+                        sentence, tokenizer, max_tokens, tokenizer_args, 0, max_depth
+                    )
                 )
-                final_chunks.extend(sub_chunks)
-                continue
-
-            # Case 2: Adding the next sentence would make the current chunk too long.
-            if current_chunk_token_count + sentence_token_len > max_tokens:
-                if current_chunk_sentences:
-                    final_chunks.append(" ".join(current_chunk_sentences))
-
-                current_chunk_sentences = [sentence]
-                current_chunk_token_count = sentence_token_len
-            # Case 3: The sentence fits, so add it to the current chunk.
+            elif current_token_count + sentence_token_count > max_tokens:
+                # Flush current chunk and start new one
+                if current_chunk:
+                    chunks.append(" ".join(current_chunk))
+                current_chunk = [sentence]
+                current_token_count = sentence_token_count
             else:
-                current_chunk_sentences.append(sentence)
-                current_chunk_token_count += sentence_token_len
+                # Add sentence to current chunk
+                current_chunk.append(sentence)
+                current_token_count += sentence_token_count
 
-        if current_chunk_sentences:
-            final_chunks.append(" ".join(current_chunk_sentences))
+        # Append final chunk if any
+        if current_chunk:
+            chunks.append(" ".join(current_chunk))
 
-        return final_chunks
+        return chunks
 
     def translate_text(
         self,
