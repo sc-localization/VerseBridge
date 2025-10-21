@@ -190,7 +190,9 @@ class Translator:
                             text, self.tokenizer, max_inputs_allowed, tokenizer_args
                         )
 
-                        self.logger.debug(f"Text {text} split into {len(chunks)} chunks")
+                        self.logger.debug(
+                            f"Text: {text} \nsplit into {len(chunks)} chunks"
+                        )
 
                         translated_chunks: List[TranslatedIniValueType] = []
 
@@ -202,7 +204,7 @@ class Translator:
 
                             translated_chunks.append(chunk_result)
 
-                        translated_text = " ".join(translated_chunks)
+                        translated_text = "".join(translated_chunks)
                         translated_texts.append(translated_text)
 
                 else:
