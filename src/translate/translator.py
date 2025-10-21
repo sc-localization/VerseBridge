@@ -185,12 +185,12 @@ class Translator:
                         "Some texts are too long, processing with splitting..."
                     )
 
-                    for i, text in enumerate(texts):
+                    for _, text in enumerate(texts):
                         chunks = self.text_processor.split_text(
                             text, self.tokenizer, max_inputs_allowed, tokenizer_args
                         )
 
-                        self.logger.debug(f"Text {i} split into {len(chunks)} chunks")
+                        self.logger.debug(f"Text {text} split into {len(chunks)} chunks")
 
                         translated_chunks: List[TranslatedIniValueType] = []
 

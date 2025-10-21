@@ -31,6 +31,8 @@ def protected_patterns():
         (7, "tag", False),  # Does not match without </>
         (8, "<tag>", True),  # Matches opening tags without /
         (8, "</tag>", False),  # Does not match closing tags
+        (9, "6483844184034236 0.0332402269075901 0.6788110501952135", True),  # Matches multiple digits 3+
+        (9, "02264 484", False),  # Does not match fewer than two single digits
     ],
 )
 def test_no_translate_patterns(protected_patterns, pattern, test_string, should_match):

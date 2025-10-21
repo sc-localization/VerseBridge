@@ -45,6 +45,7 @@ class TranslationConfig:
             r"(<\s*/?[^>]+>)",  # All tags <...> (opening and closing)
             r"(</\s*[^>]+>)",  # Closing tag </...>
             r"(<\s*[^/][^>]*\s*>)",  # All words in angle brackets <...>
+            r"([\d\.]+\s+){2,}[\d\.]+",  # sequences of 3+ numbers (integers or floats) separated by spaces
         )
     )
 
