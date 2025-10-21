@@ -191,7 +191,7 @@ class Translator:
                         )
 
                         self.logger.debug(
-                            f"Text {text} split into {len(chunks)} chunks"
+                            f"Text: {text} \nsplit into {len(chunks)} chunks"
                         )
 
                         translated_chunks: List[TranslatedIniValueType] = []
