@@ -46,7 +46,7 @@ class FileUtils:
         self.logger.debug(f"Parsing INI file: {file_path}")
 
         try:
-            with file_path.open(encoding="utf-8-sig") as file:
+            with file_path.open(encoding="latin-1") as file:
                 for line in file:
                     line = line.strip()
 
