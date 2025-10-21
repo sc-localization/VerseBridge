@@ -1,0 +1,24 @@
+name: Branch Target Check
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited]
+
+jobs:
+  check_target_branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check base branch rules
+        if:
+          # 'github.base_ref' - main
+          # 'github.head_ref' - feature/x, dev
+          github.base_ref == 'main' && github.head_ref != 'dev'
+
+        run: |
+          echo "::error file=.github/workflows/branch-check.yml::PR merge from '${{ github.head_ref }}' to 'main' is forbidden. Only PRs from 'dev' to 'main' are allowed."
+          exit 1
+
+      - name: Notify on correct PR target
+        if: success() && always()
+        run: |
+          echo "PR target branch check passed: ${{ github.head_ref }} -> ${{ github.base_ref }}"
