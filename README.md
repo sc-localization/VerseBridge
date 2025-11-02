@@ -3,7 +3,7 @@
 
   <p>A tool for automating translation and analysis of game texts using modern machine learning models. Supports multilingual translation, named entity recognition (NER), as well as training and adaptation of models for game tasks and custom datasets.</p>
   
-  <img src="https://github.com/user-attachments/assets/cde49eaa-f857-4be0-a2c7-215bd9c0a471" width="100">
+   <img src="https://github.com/user-attachments/assets/98a9be14-e889-47ab-b582-ee3874d1ebc8" width="100">
 </div>
 
 <div align="center">
@@ -12,7 +12,7 @@
 
 <br>
 
-> [!NOTE] 
+> [!NOTE]
 > **Tested on**: WSL Ubuntu 22.04, NVIDIA CUDA 12.8, 12GB 4070 GPU
 
 **Documentation**: [Русский](doc/README_RU.md)
