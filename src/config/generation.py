@@ -13,10 +13,10 @@ class GenerationConfigParams:
     - https://huggingface.co/docs/transformers/generation_strategies
     """
 
-    num_beams: int = 4
+    num_beams: int = 2
     early_stopping: bool = True
     no_repeat_ngram_size=3
-    repetition_penalty: float = 1.9
+    repetition_penalty: float = 1.1
 
     def to_dict(self) -> GenerationConfigType:
         return asdict(self)
