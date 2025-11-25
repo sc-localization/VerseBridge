@@ -1,13 +1,11 @@
 import nltk
 import re
-from nltk.tokenize import sent_tokenize
-from typing import List, Optional, Tuple
+from typing import List, Tuple, Optional
 from transformers import PreTrainedTokenizerBase
 
 from src.config import ConfigManager
 from src.type_defs import (
     PlaceholdersType,
-    TranslatorCallableType,
     INIFIleValueType,
     TranslatedIniValueType,
     LoggerType,
@@ -31,18 +29,11 @@ class TextProcessor:
 
         self.protected_pattern = re.compile("|".join(protected_patterns), re.UNICODE)
 
-    def _protect_patterns(
+    def protect_patterns(
         self, text: INIFIleValueType, ner_patterns: Optional[JSONNERListType] = None
     ) -> Tuple[INIFIleValueType, INIFIleValueType, PlaceholdersType, PlaceholdersType]:
         """
         Protects both protected patterns and NER entities with unique placeholders.
-
-        Args:
-            text (INIFIleValueType): Input text.
-            ner_patterns (JSONNERListType): Regex patterns for NER entities.
-
-        Returns:
-            Tuple[INIFIleValueType, INIFIleValueType, Dict[str, str], Dict[str, str]]: Modified text, protected placeholders, NER placeholders.
         """
         protected_placeholders: PlaceholdersType = {}
         ner_placeholders: PlaceholdersType = {}
@@ -82,23 +73,16 @@ class TextProcessor:
                     match_value = match.group(0)
 
                     if re.fullmatch(self.translation_config.get_p_regex(), match_value):
-                        self.logger.debug(
-                            f"Skipping NER match as it is a protected placeholder: {match_value}"
-                        )
                         return match_value
 
                     if re.fullmatch(
                         self.translation_config.get_ner_regex(), match_value
                     ):
-                        self.logger.debug(
-                            f"Skipping NER match as it is a existing placeholder: {match_value}"
-                        )
                         return match_value
 
                     key = self.translation_config.get_ner_template(
                         len(ner_placeholders)
                     )
-
                     ner_placeholders[key] = match_value
 
                     return key
@@ -115,26 +99,18 @@ class TextProcessor:
 
         return context_text, full_text, protected_placeholders, ner_placeholders
 
-    def _restore_patterns(
+    def restore_patterns(
         self,
         translated_text: TranslatedIniValueType,
         protected_placeholders: PlaceholdersType,
         ner_placeholders: PlaceholdersType,
     ) -> TranslatedIniValueType:
         """
-        Restores protected and NER placeholders. NER can be restored as originals or translated.
-
-        Args:
-            translated_text (str): Translated text with placeholders.
-            protected_placeholders (Dict[str, str]): Protected pattern placeholders.
-            ner_placeholders (Dict[str, str]): NER placeholders.
-
-        Returns:
-            str: Text with placeholders restored.
+        Restores protected and NER placeholders.
         """
         result = translated_text
 
-        # Step 1: Restore NER placeholders (to handle potential overlaps first)
+        # Step 1: Restore NER placeholders
         for key, original in ner_placeholders.items():
             result = re.sub(re.escape(key), original, result)
 
@@ -153,207 +129,116 @@ class TextProcessor:
         tokenizer: PreTrainedTokenizerBase,
         tokenizer_args: TokenizerConfigType,
     ) -> int:
-        """Calculate the token count for a given text."""
         tokens = tokenizer(text, **tokenizer_args)
-
         return len(tokens["input_ids"][0])  # type: ignore
 
-    def _truncate_text(
-        self,
-        text: str,
-        tokenizer: PreTrainedTokenizerBase,
-        max_tokens: int,
-        tokenizer_args: TokenizerConfigType,
-    ) -> str:
-        """Truncate text to fit within max_tokens."""
-        tokens = tokenizer(text, **tokenizer_args)
-        truncated_ids = tokens["input_ids"][0][:max_tokens]  # type: ignore
-
-        return tokenizer.decode(truncated_ids, skip_special_tokens=True)
-
-    def _split_by_midpoint(self, text: str) -> List[str]:
-        """Split text at a safe midpoint (preferably at a space) if it exceeds max_tokens."""
-        mid_point = len(text) // 2
-        safe_split_index = text.find(" ", mid_point - 50, mid_point + 50)
-
-        if safe_split_index == -1:
-            safe_split_index = mid_point
-
-        return [text[:safe_split_index].strip(), text[safe_split_index:].strip()]
-
-    def _split_recursively(
+    def split_text_smart(
         self,
         text: str,
         tokenizer: PreTrainedTokenizerBase,
         max_tokens: int,
         tokenizer_args: TokenizerConfigType,
         depth: int = 0,
-        max_depth: int = 5,
+        max_depth: int = 10,
     ) -> List[str]:
         """
-        Recursively split text into chunks smaller than max_tokens.
-        Prioritizes splitting by newlines, then by midpoint if necessary.
+        Recursively splits text at safe boundaries (newlines, sentences, spaces)
+        PRESERVING the separators in the chunks.
+        Designed to be rejoined simply with "".join().
         """
-        if depth >= max_depth:
-            self.logger.warning(
-                f"Max split depth {max_depth} reached. Truncating text."
-            )
-
-            return [self._truncate_text(text, tokenizer, max_tokens, tokenizer_args)]
-
-        # Check if text is already within token limit
-        token_count = self._get_token_count(text, tokenizer, tokenizer_args)
-
-        if token_count <= max_tokens:
-            return [text]
-
-        # Try splitting by newline placeholders
-        nl_placeholder = re.escape(self.translation_config.get_nl_template())
-        parts = re.split(f"{nl_placeholder}+", text)
-        parts = [part.strip() for part in parts if part.strip()]
-
-        if len(parts) > 1:
-            chunks = []
-
-            for part in parts:
-                part_token_count = self._get_token_count(
-                    part, tokenizer, tokenizer_args
-                )
-
-                if part_token_count > max_tokens:
-                    chunks.extend(
-                        self._split_recursively(
-                            part,
-                            tokenizer,
-                            max_tokens,
-                            tokenizer_args,
-                            depth + 1,
-                            max_depth,
-                        )
-                    )
-                else:
-                    chunks.append(part)
-
-            return chunks
-
-        # Fallback to midpoint splitting
-        self.logger.debug("No newline split possible. Splitting by midpoint.")
-
-        parts = self._split_by_midpoint(text)
-        chunks = []
-
-        for part in parts:
-            part_token_count = self._get_token_count(part, tokenizer, tokenizer_args)
-
-            if part_token_count > max_tokens:
-                chunks.extend(
-                    self._split_recursively(
-                        part,
-                        tokenizer,
-                        max_tokens,
-                        tokenizer_args,
-                        depth + 1,
-                        max_depth,
-                    )
-                )
-            else:
-                chunks.append(part)
-
-        return chunks
-
-    def split_text(
-        self,
-        text: str,
-        tokenizer: PreTrainedTokenizerBase,
-        max_tokens: int,
-        tokenizer_args: TokenizerConfigType,
-        max_depth: int = 5,
-    ) -> List[str]:
-        """
-        Split text into chunks smaller than max_tokens, optimizing for performance.
-        Sentences are grouped efficiently, and only oversized segments are split recursively.
-        """
-        # Early return for short texts
+        # 1. Check if text fits
         if self._get_token_count(text, tokenizer, tokenizer_args) <= max_tokens:
             return [text]
 
+        if depth >= max_depth:
+            self.logger.warning(f"Max split depth reached for text: {text[:50]}...")
+            # Fallback: hard cut (not ideal but avoids infinite recursion)
+            return [text]
+
+        # 2. Strategy: Find the best split point near the middle
+        mid = len(text) // 2
+        # Define search window (middle 50% of text)
+        start_search = len(text) // 4
+        end_search = start_search * 3
+
+        best_split_idx = -1
+
+        # Priority 1: Newline placeholder [0]
+        nl_template = self.translation_config.get_nl_template()
+        # Find all occurrences of nl_template
+        nl_indices = [m.start() for m in re.finditer(re.escape(nl_template), text)]
+
+        # Find closest to mid
+        closest_dist = float("inf")
+        for idx in nl_indices:
+            # We want to include the newline in the first chunk, so split AFTER it
+            split_candidate = idx + len(nl_template)
+
+            if start_search <= split_candidate <= end_search:
+                dist = abs(split_candidate - mid)
+
+                if dist < closest_dist:
+                    closest_dist = dist
+                    best_split_idx = split_candidate
+
+        # Priority 2: Sentence boundary (. followed by space)
+        if best_split_idx == -1:
+            # Simple heuristic for sentence end.
+            # Note: This might be less accurate than NLTK but easier to control indices.
+            # We look for ". "
+            matches = [m.start() for m in re.finditer(r"\.\s", text)]
+            closest_dist = float("inf")
+
+            for idx in matches:
+                # Include ". " in the first chunk (or at least the dot)
+                split_candidate = idx + 1  # Split after dot, keep space in next?
+                # Better: Split after space -> idx + 2. "Sentence. " | "Next"
+                split_candidate = idx + 2
+
+                if start_search <= split_candidate <= end_search:
+                    dist = abs(split_candidate - mid)
+
+                    if dist < closest_dist:
+                        closest_dist = dist
+                        best_split_idx = split_candidate
+
+        # Priority 3: Any Space
+        if best_split_idx == -1:
+            space_indices = [m.start() for m in re.finditer(r"\s", text)]
+            closest_dist = float("inf")
+
+            for idx in space_indices:
+                # Split after space so space stays with first chunk
+                split_candidate = idx + 1
+
+                if start_search <= split_candidate <= end_search:
+                    dist = abs(split_candidate - mid)
+
+                    if dist < closest_dist:
+                        closest_dist = dist
+                        best_split_idx = split_candidate
+
+        # Priority 4: Hard cut at middle (if no separators found)
+        if best_split_idx == -1:
+            best_split_idx = mid
+
+        # 3. Perform Split
+        left_part = text[:best_split_idx]
+        right_part = text[best_split_idx:]
+
+        # 4. Recursion
+        # Process left part
         chunks = []
-        current_chunk = []
-        current_token_count = 0
-
-        sentences = sent_tokenize(text)
-        for sentence in sentences:
-            sentence_token_count = self._get_token_count(
-                sentence, tokenizer, tokenizer_args
+        chunks.extend(
+            self.split_text_smart(
+                left_part, tokenizer, max_tokens, tokenizer_args, depth + 1, max_depth
             )
-
-            if sentence_token_count > max_tokens:
-                # Flush current chunk if any
-                if current_chunk:
-                    chunks.append(" ".join(current_chunk))
-                    current_chunk = []
-                    current_token_count = 0
-                # Split oversized sentence recursively
-                chunks.extend(
-                    self._split_recursively(
-                        sentence, tokenizer, max_tokens, tokenizer_args, 0, max_depth
-                    )
-                )
-            elif current_token_count + sentence_token_count > max_tokens:
-                # Flush current chunk and start new one
-                if current_chunk:
-                    chunks.append(" ".join(current_chunk))
-                current_chunk = [sentence]
-                current_token_count = sentence_token_count
-            else:
-                # Add sentence to current chunk
-                current_chunk.append(sentence)
-                current_token_count += sentence_token_count
-
-        # Append final chunk if any
-        if current_chunk:
-            chunks.append(" ".join(current_chunk))
+        )
+        # Process right part
+        chunks.extend(
+            self.split_text_smart(
+                right_part, tokenizer, max_tokens, tokenizer_args, depth + 1, max_depth
+            )
+        )
 
         return chunks
-
-    def translate_text(
-        self,
-        text: INIFIleValueType,
-        translator: TranslatorCallableType,
-        ner_patterns: JSONNERListType,
-    ) -> Tuple[TranslatedIniValueType, TranslatedIniValueType]:
-        """
-        Translates text, returning both context (NER protected) and full (NER translated) versions.
-
-        Args:
-            text (INIFIleValueType): Input text.
-            translator (TranslatorCallableType): Translator function.
-            ner_patterns (JSONNERListType): Patterns for NER protection.
-
-        Returns:
-            Tuple[str, str]: (context_version, full_version)
-        """
-        if not text:
-            return text, text
-
-        context_text, full_text, protected_placeholders, ner_placeholders = (
-            self._protect_patterns(text, ner_patterns)
-        )
-
-        texts = [context_text, full_text]  # Order: context first, full second
-        translated_texts = translator(texts)
-
-        if len(translated_texts) != 2:
-            self.logger.error(f"Expected 2 translations, got {len(translated_texts)}")
-            raise ValueError(f"Expected 2 translations")
-
-        context_translated_text, full_translated_text = translated_texts
-
-        context_version = self._restore_patterns(
-            context_translated_text, protected_placeholders, ner_placeholders
-        )
-        full_version = self._restore_patterns(
-            full_translated_text, protected_placeholders, {}
-        )
-
-        return context_version, full_version

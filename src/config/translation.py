@@ -10,6 +10,7 @@ from src.type_defs import (
 @dataclass
 class TranslationConfig:
     buffer_size: int = 50  # Number of lines for writing translations to file
+    batch_size: int = 16  # This is the pack size for the GPU
 
     _length_language_ratio = {
         (

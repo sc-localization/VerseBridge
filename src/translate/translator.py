@@ -1,6 +1,6 @@
 import torch
 from transformers import BatchEncoding
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Tuple, TypedDict
 from tqdm import tqdm
 
 from src.config import ConfigManager
@@ -8,7 +8,6 @@ from src.type_defs import (
     InitializedModelType,
     InitializedTokenizerType,
     LoggerType,
-    TranslatorCallableType,
     INIFIleValueType,
     TranslatedIniValueType,
     CachedParamsType,
@@ -16,6 +15,13 @@ from src.type_defs import (
 )
 from src.utils import MemoryManager
 from .text_processor import TextProcessor
+
+
+class BatchWorkItemType(TypedDict):
+    original_idx: int
+    chunks: List[str]
+    stride: int
+    translated_chunks: List[str]
 
 
 class Translator:
@@ -38,10 +44,8 @@ class Translator:
         self._validate_initialization()
 
     def _validate_initialization(self) -> None:
-        """Validate that required components are properly initialized."""
         if not self.model:
             raise ValueError("Model must be initialized")
-
         if not self.tokenizer:
             raise ValueError("Tokenizer must be initialized")
 
@@ -51,9 +55,6 @@ class Translator:
         max_new_tokens: int,
         min_new_tokens: Optional[int] = None,
     ) -> Any:
-        """
-        Generate translation for given inputs.
-        """
         try:
             with torch.no_grad(), torch.amp.autocast("cuda"):
                 return self.model.generate(
@@ -70,9 +71,6 @@ class Translator:
     def _calculate_token_limits(
         self, input_length: int, max_model_length: int, token_reserve: int
     ) -> tuple[Optional[int], int]:
-        """
-        Calculate min and max new tokens for generation.
-        """
         min_new_tokens = None
         max_new_tokens = max_model_length - input_length - token_reserve
 
@@ -86,19 +84,14 @@ class Translator:
 
     def _translate_single_text(
         self,
-        texts: List[INIFIleValueType],
+        texts: List[str],  # Changed to strictly List[str]
         tokenizer_args: TokenizerConfigType,
         cached_params: CachedParamsType,
     ) -> List[TranslatedIniValueType]:
-        """
-        Translate a single text or batch of texts.
-        """
         try:
             tgt_lang_token = self.config.lang_config.tgt_lang_token
-            # Добавляем языковой токен к каждому тексту
             prefixed_texts = [f"{tgt_lang_token} {text}" for text in texts]
 
-            # Токенизация батча
             tokens = self.tokenizer(prefixed_texts, **tokenizer_args).to(self.device)
             input_length = int(torch.sum(tokens.attention_mask, dim=1).max().item())  # type: ignore
 
@@ -108,14 +101,12 @@ class Translator:
                 cached_params["token_reserve"],
             )
 
-            # Генерация переводов
             translated_tokens = self._generate_translation(
                 tokens,
                 max_new_tokens,
                 min_new_tokens,
             )
 
-            # Декодирование результатов
             decoded_texts = self.tokenizer.batch_decode(
                 translated_tokens, skip_special_tokens=True
             )
@@ -126,96 +117,92 @@ class Translator:
             self.logger.error(f"Failed to translate text: {str(e)}")
             raise
 
-    def _should_split_text(
-        self, text: str, tokenizer_args: TokenizerConfigType, max_inputs_allowed: int
-    ) -> bool:
+    def translate_batch(
+        self, texts: List[INIFIleValueType], batch_size: int = 16
+    ) -> List[TranslatedIniValueType]:
         """
-        Check if text needs to be split due to length constraints.
+        Translates a list of texts using efficient batching and SMART splitting.
         """
-        tokens = self.tokenizer(text, **tokenizer_args)
-        input_length = len(tokens["input_ids"][0])  # type: ignore
+        if not texts:
+            return []
 
-        return input_length >= max_inputs_allowed
-
-    def create_translator(self) -> TranslatorCallableType:
-        """
-        Create a translator callable function.
-        """
         lang_config = self.config.lang_config
         translation_config = self.config.translation_config
-        dataset_config = self.config.dataset_config
+        tokenizer_args = self.config.dataset_config.translation_dict
 
-        src_lang = lang_config.src_lang
-        tgt_lang = lang_config.tgt_lang
-
-        token_reserve = translation_config.token_reserve
-        tokenizer_args = dataset_config.translation_dict
         max_model_length = tokenizer_args["max_length"]
+        token_reserve = translation_config.token_reserve
 
-        language_ratio = translation_config.get_language_ratio(src_lang, tgt_lang)
+        # Calculate safe length
+        language_ratio = translation_config.get_language_ratio(
+            lang_config.src_lang, lang_config.tgt_lang
+        )
+        # We don't need overlap subtraction anymore
+        safe_input_len = int((max_model_length - token_reserve) / (1 + language_ratio))
 
+        results: List[str] = [""] * len(texts)
+
+        # 1. Prepare chunks using SMART split (Recursive)
+        batch_work_items: List[BatchWorkItemType] = []
+
+        self.logger.info(f"Preparing {len(texts)} texts for translation...")
+
+        for idx, text in enumerate(texts):
+            # Using the new SMART split method (no overlap return value)
+            chunks = self.text_processor.split_text_smart(
+                text, self.tokenizer, safe_input_len, tokenizer_args
+            )
+
+            batch_work_items.append(
+                {
+                    "original_idx": idx,
+                    "chunks": chunks,
+                    "stride": 0,  # Not used in smart split
+                    "translated_chunks": [],
+                }
+            )
+
+        # 2. Flatten chunks (Same logic as before)
+        all_flat_chunks: List[Tuple[int, int, str]] = []  # (text_idx, chunk_idx, text)
+
+        for item in batch_work_items:
+            for c_idx, chunk in enumerate(item["chunks"]):
+                all_flat_chunks.append((item["original_idx"], c_idx, chunk))
+
+        self.logger.info(f"Total chunks to translate: {len(all_flat_chunks)}")
+
+        # 3. Process in batches (Same logic as before)
+        total_chunks = len(all_flat_chunks)
         cached_params: CachedParamsType = {
             "max_model_length": max_model_length,
             "token_reserve": token_reserve,
         }
 
-        max_inputs_allowed = int(
-            (max_model_length - token_reserve) / (1 + language_ratio)
-        )
-
-        def translate(texts: List[INIFIleValueType]) -> List[TranslatedIniValueType]:
-            """
-            Translate a list of texts, handling splitting when necessary.
-            """
-            if not texts:
-                self.logger.warning("Empty input text list provided")
-                return []
-
-            translated_texts: List[TranslatedIniValueType] = []
-
-            # Since almost all texts will have roughly the same length, we assume that at least one of them needs to be split into parts.
-            is_any_text_too_long = any(
-                self._should_split_text(text, tokenizer_args, max_inputs_allowed)
-                for text in texts
-            )
+        for i in tqdm(range(0, total_chunks, batch_size), desc="Translating batches"):
+            current_batch_items = all_flat_chunks[i : i + batch_size]
+            current_texts = [item[2] for item in current_batch_items]
 
             try:
-                if is_any_text_too_long:
-                    self.logger.debug(
-                        "Some texts are too long, processing with splitting..."
+                translated_batch = self._translate_single_text(
+                    current_texts, tokenizer_args, cached_params
+                )
+
+                for j, translated_text in enumerate(translated_batch):
+                    orig_idx = current_batch_items[j][0]
+                    batch_work_items[orig_idx]["translated_chunks"].append(
+                        translated_text
                     )
-
-                    for _, text in enumerate(texts):
-                        chunks = self.text_processor.split_text(
-                            text, self.tokenizer, max_inputs_allowed, tokenizer_args
-                        )
-
-                        self.logger.debug(
-                            f"Text: {text} \nsplit into {len(chunks)} chunks"
-                        )
-
-                        translated_chunks: List[TranslatedIniValueType] = []
-
-                        # Translate chunks one by one, as translating a batch leads to dependence on the order of the chunks.
-                        for chunk in tqdm(chunks, desc=f"Translating chunks"):
-                            chunk_result = self._translate_single_text(
-                                [chunk], tokenizer_args, cached_params
-                            )[0]
-
-                            translated_chunks.append(chunk_result)
-
-                        translated_text = "".join(translated_chunks)
-                        translated_texts.append(translated_text)
-
-                else:
-                    translated_texts = self._translate_single_text(
-                        texts, tokenizer_args, cached_params
-                    )
-
-                return translated_texts
 
             except Exception as e:
-                self.logger.error(f"Translation failed: {str(e)}")
-                raise
+                self.logger.error(f"Batch translation failed at index {i}: {e}")
+                for j in range(len(current_texts)):
+                    orig_idx = current_batch_items[j][0]
+                    batch_work_items[orig_idx]["translated_chunks"].append("[ERROR]")
 
-        return translate
+        # 4. Merge results using simple JOIN (Smart split preserves separators)
+        for item in batch_work_items:
+            # Simple join because split_text_smart kept the spaces/newlines
+            final_text = "".join(item["translated_chunks"])
+            results[item["original_idx"]] = final_text
+
+        return results

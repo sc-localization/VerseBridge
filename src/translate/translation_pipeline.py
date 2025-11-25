@@ -75,7 +75,7 @@ class TranslationPipeline:
             # 4. Initializing translator
             translator = Translator(
                 self.config, model, tokenizer, self.text_processor, self.logger
-            ).create_translator()
+            )
 
             # 5. Creating destination directory
             os.makedirs(translation_dest_dir, exist_ok=True)
