@@ -2,13 +2,13 @@
   <h1>VerseBridge</h1>
 
   <p>A tool for automating translation and analysis of game texts using modern machine learning models. Supports multilingual translation, named entity recognition (NER), as well as training and adaptation of models for game tasks and custom datasets.</p>
-  
-   <img src="https://github.com/user-attachments/assets/98a9be14-e889-47ab-b582-ee3874d1ebc8" width="100">
 </div>
 
-<div align="center">
-  <i>This is an unofficial Star Citizen fansite, not affiliated with Cloud Imperium Games. All content not authored by the host or users belongs to its respective owners.</i>
-</div>
+<p align="center">
+      <img src="https://github.com/sc-localization/.github/blob/main/assets/community.png?raw=true" width="100" alt="Made the community">
+</p>
+
+<p align="center"><em>This is an unofficial Star Citizen fansite, not affiliated with the Cloud Imperium group of companies. All content on this site not authored by its host or users are property of their respective owners.</em></p>
 
 <br>
 
