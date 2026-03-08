@@ -124,8 +124,17 @@ cython_debug/
 
 # project
 models/
-data/
+data/**
+!data/**/
+!data/**/.gitkeep
 logs/
 
 # notebook
 *.ipynb
+
+# IDE specific
+.continue/
+.claude
+.agent
+CLAUDE.md
+GEMINI.md
