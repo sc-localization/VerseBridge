@@ -1,0 +1,70 @@
+{
+    "training": {
+        "num_train_epochs": 10,
+        "learning_rate": 2e-4,
+        "weight_decay": 0.01,
+        "warmup_ratio": 0.05,
+        "max_grad_norm": 0.5,
+        "optim": "adamw_bnb_8bit",
+        "lr_scheduler_type": "linear",
+        "bf16": true,
+        "per_device_train_batch_size": 4,
+        "per_device_eval_batch_size": 4,
+        "gradient_accumulation_steps": 32,
+        "eval_accumulation_steps": 4,
+        "eval_strategy": "steps",
+        "eval_steps": 500,
+        "eval_on_start": false,
+        "predict_with_generate": true,
+        "save_strategy": "steps",
+        "save_steps": 500,
+        "save_total_limit": 5,
+        "load_best_model_at_end": true,
+        "metric_for_best_model": "bleu",
+        "greater_is_better": true,
+        "logging_steps": 50,
+        "logging_strategy": "steps",
+        "report_to": ["tensorboard"],
+        "label_smoothing_factor": 0.05,
+        "label_names": ["labels"],
+        "torch_empty_cache_steps": 100
+    },
+    "ner_training": {
+        "num_train_epochs": 3,
+        "learning_rate": 2e-5,
+        "weight_decay": 0.01,
+        "per_device_train_batch_size": 8,
+        "per_device_eval_batch_size": 8,
+        "save_total_limit": 2,
+        "load_best_model_at_end": true,
+        "metric_for_best_model": "f1",
+        "eval_strategy": "steps"
+    },
+    "translation": {
+        "buffer_size": 50,
+        "batch_size": 16,
+        "token_reserve": 20
+    },
+    "generation": {
+        "num_beams": 2,
+        "early_stopping": true,
+        "no_repeat_ngram_size": 3,
+        "repetition_penalty": 1.1
+    },
+    "lora": {
+        "r": 16,
+        "lora_alpha": 32,
+        "lora_dropout": 0.05,
+        "target_modules": ["q", "v"]
+    },
+    "dataset": {
+        "max_model_length": 1024,
+        "max_training_length": 256,
+        "data_split_ratio": 0.9,
+        "sample_size_for_recommendation": 20000
+    },
+    "ner": {
+        "threshold_confidence": 0.7,
+        "aggregation_strategy": "average"
+    }
+}

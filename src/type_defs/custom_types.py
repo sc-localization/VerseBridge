@@ -171,12 +171,15 @@ JSONDataConvertedToBIOListType: TypeAlias = List[JSONConvertedToBIOType]
 JSONNERListType: TypeAlias = List[str]
 
 
+ConfigJSONType: TypeAlias = Dict[str, Dict[str, Any]]
+
 LoadedJSONType: TypeAlias = (
     JSONHelpStringsDictType
     | JSONDataTranslationListType
     | JSONDataNERListType
     | JSONDataConvertedToBIOListType
     | JSONNERListType
+    | ConfigJSONType
 )
 
 CleanedINIFIleValueType: TypeAlias = INIFIleValueType
@@ -366,3 +369,20 @@ def is_ini_file_line(line: Any) -> TypeGuard[IniLineType]:
 
 def is_list_of_ner_patterns(obj: Any) -> TypeGuard[JSONNERListType]:
     return isinstance(obj, list) and all(isinstance(x, str) for x in obj)
+
+
+def is_config_json_type(data: Any) -> TypeGuard[ConfigJSONType]:
+    if not isinstance(data, dict):
+        return False
+
+    for key, value in data.items():
+        if not isinstance(key, str):
+            return False
+
+        if not isinstance(value, dict):
+            return False
+
+        if not all(isinstance(k, str) for k in value.keys()):
+            return False
+
+    return True

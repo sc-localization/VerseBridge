@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 import torch
 
 
@@ -66,6 +67,13 @@ def parse_args():
         metavar="PATH",
         help=help_strings["model_path_help"],
     )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help="Path to JSON config profile (default: configs/default.json)",
+    )
 
     args = parser.parse_args()
 
@@ -95,6 +103,7 @@ def main():
     config_manager = ConfigManager(
         src_lang=args.src_lang,
         tgt_lang=args.tgt_lang,
+        config_path=args.config,
     )
     logger = initialize_logger(config_manager)
 

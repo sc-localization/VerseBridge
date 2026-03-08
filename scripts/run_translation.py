@@ -73,6 +73,13 @@ def parse_args() -> argparse.Namespace:
         metavar="",
         help=help_strings["input_file_help"],
     )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help="Path to JSON config profile (default: configs/default.json)",
+    )
 
     args = parser.parse_args()
 
@@ -105,6 +112,7 @@ def main():
         src_lang=args.src_lang,
         tgt_lang=args.tgt_lang,
         input_file=args.input_file,
+        config_path=args.config,
     )
 
     logger = initialize_logger(config_manager)
