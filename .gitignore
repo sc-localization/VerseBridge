@@ -129,3 +129,10 @@ logs/
 
 # notebook
 *.ipynb
+
+# IDE specific
+.continue/
+.claude
+.agent
+CLAUDE.md
+GEMINI.md
