@@ -124,7 +124,9 @@ cython_debug/
 
 # project
 models/
-data/
+data/**
+!data/**/
+!data/**/.gitkeep
 logs/
 
 # notebook
