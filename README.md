@@ -8,7 +8,7 @@
       <img src="https://github.com/sc-localization/.github/blob/main/assets/community.png?raw=true" width="100" alt="Made the community">
 </p>
 
-<p align="center"><em>This is an unofficial Star Citizen fansite, not affiliated with the Cloud Imperium group of companies. All content on this site not authored by its host or users are property of their respective owners.</em></p>
+<p align="center"><em>This is an unofficial Star Citizen fansite and fan localization project. It is not affiliated with the Cloud Imperium group of companies. All content on this site not authored by its host or users are property of their respective owners.</em></p>
 
 <br>
 
@@ -321,3 +321,7 @@ If you would like to contribute to the project, please read [CONTRIBUTING](CONTR
   <!-- - **Ru Translations**: Creative Commons BY-NC-SA 4.0 ([LICENSE_TRANSLATIONS](LICENSE_TRANSLATIONS)) -->
 
 **Special permission is granted to Cloud Imperium Games for unrestricted use. See [SPECIAL_PERMISSION](SPECIAL_PERMISSION.md).**
+
+## Trademarks
+
+Star Citizen®, Roberts SpaceIndustries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC.
