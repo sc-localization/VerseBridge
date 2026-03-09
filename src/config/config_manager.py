@@ -61,5 +61,6 @@ class ConfigManager:
                 str(self.base_path_config.logging_dir),
                 **ner_training_section,
             ),
+            lora_config=self.lora_config,
             **ner_section,
         )

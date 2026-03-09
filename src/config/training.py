@@ -18,15 +18,15 @@ from src.type_defs import (
 class NerTrainingConfig:
     logging_dir: str
 
-    num_train_epochs: int = 3
-    learning_rate: float = 2e-5
-    weight_decay: float = 0.01
-    per_device_train_batch_size: int = 8
-    per_device_eval_batch_size: int = 8
-    save_total_limit: int = 2
-    load_best_model_at_end: bool = True
-    metric_for_best_model: str = "f1"
-    eval_strategy: Strategy = Strategy.STEPS
+    num_train_epochs: int
+    learning_rate: float
+    weight_decay: float
+    per_device_train_batch_size: int
+    per_device_eval_batch_size: int
+    save_total_limit: int
+    load_best_model_at_end: bool
+    metric_for_best_model: str
+    eval_strategy: Strategy
 
     def to_dict(self) -> NerTrainingConfigType:
         return asdict(self)  # type: ignore
@@ -43,48 +43,46 @@ class TranslationTrainingConfig:
     logging_dir: str  # Log directory (initialized in __post_init__)
 
     # === General training parameters ===
-    num_train_epochs: int = 10
-    learning_rate: float = 2e-4
-    weight_decay: float = 0.01
-    warmup_ratio: float = 0.05
-    max_grad_norm: float = 0.5
+    num_train_epochs: int
+    learning_rate: float
+    weight_decay: float
+    warmup_ratio: float
+    max_grad_norm: float
 
     # === Optimizer and scheduler ===
-    optim: Optimizer = Optimizer.paged_adamw_8bit
-    lr_scheduler_type: Scheduler = Scheduler.linear
+    optim: Optimizer
+    lr_scheduler_type: Scheduler
 
     # === Batching and gradients ===
-    bf16: bool = True
-    per_device_train_batch_size: int = 4
-    per_device_eval_batch_size: int = 4
-    gradient_accumulation_steps: int = 32
-    eval_accumulation_steps: int = 4
+    bf16: bool
+    per_device_train_batch_size: int
+    per_device_eval_batch_size: int
+    gradient_accumulation_steps: int
+    eval_accumulation_steps: int
 
     # === Validation and saving strategies ===
-    eval_strategy: Strategy = Strategy.STEPS
-    eval_steps: int = 500
-    eval_on_start: bool = False
-    predict_with_generate: bool = True
-    save_strategy: Strategy = Strategy.STEPS
-    save_steps: int = 500
-    save_total_limit: int = 5
-    load_best_model_at_end: bool = True
-    metric_for_best_model: Metric = Metric.BLEU
-    greater_is_better: bool = True
+    eval_strategy: Strategy
+    eval_steps: int
+    eval_on_start: bool
+    predict_with_generate: bool
+    save_strategy: Strategy
+    save_steps: int
+    save_total_limit: int
+    load_best_model_at_end: bool
+    metric_for_best_model: Metric
+    greater_is_better: bool
 
     # === Logging and reporting ===
-    logging_steps: int = 50
-    logging_strategy: Strategy = Strategy.STEPS
-    report_to: LogReportTargetListType = field(
-        default_factory=lambda: [LogReportTarget.TENSORBOARD]
-    )  # Where to log
+    logging_steps: int
+    logging_strategy: Strategy
+    report_to: LogReportTargetListType
 
     # === Label and generation ===
-    label_smoothing_factor: float = 0.05
-    label_names: LabelNamesListType = field(default_factory=lambda: [LabelNames.LABELS])
+    label_smoothing_factor: float
+    label_names: LabelNamesListType
 
     # === Additional parameters ===
-    torch_empty_cache_steps: int = 100
+    torch_empty_cache_steps: int
 
     def to_dict(self) -> TranslationTrainingConfigType:
         config_as_dict = asdict(self)

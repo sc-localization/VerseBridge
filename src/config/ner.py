@@ -1,7 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
-from peft import TaskType, LoraConfig as PeftLoraConfig
-
+from typing import List, Dict
 from .lora import LoraConfig
 from .training import NerTrainingConfig
 from src.type_defs import (
@@ -14,6 +12,13 @@ from src.type_defs import (
 
 @dataclass
 class NERConfig:
+    # Extraction settings (from config profile)
+    threshold_confidence: float
+    aggregation_strategy: AggregationStrategyType
+
+    lora_config: LoraConfig
+    training_config: NerTrainingConfig
+
     model_name: str = "Jean-Baptiste/roberta-large-ner-english"
 
     categories: List[str] = field(
@@ -78,16 +83,7 @@ class NERConfig:
     items_per_page_default: int = 5
     items_per_page_max: int = 20
 
-    # Extraction settings
-    threshold_confidence: float = 0.7
-    aggregation_strategy: AggregationStrategyType = "average"
-
     label_names: LabelNamesListType = field(default_factory=lambda: [LabelNames.LABELS])
-
-    lora_config: PeftLoraConfig = field(
-        default_factory=lambda: LoraConfig(task_type=TaskType.TOKEN_CLS)
-    )
-    training_config: Optional[NerTrainingConfig] = None
 
     def __post_init__(self):
         self.label_list = self._build_label_list()
