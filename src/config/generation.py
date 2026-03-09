@@ -15,7 +15,6 @@ class GenerationConfigParams:
 
     num_beams: int = 2
     early_stopping: bool = True
-    no_repeat_ngram_size: int = 3
     repetition_penalty: float = 1.1
 
     def to_dict(self) -> GenerationConfigType:

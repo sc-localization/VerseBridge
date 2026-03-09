@@ -49,7 +49,6 @@ class ConfigProfileLoader:
 
     def load(self) -> "ConfigProfileLoader":
         path = self._resolve_path()
-        print(path);
 
         if path is None:
             self._logger.info("No config profile found, using dataclass defaults")
@@ -58,7 +57,6 @@ class ConfigProfileLoader:
         self._logger.info(f"Loading config profile from {path}")
 
         raw = self._read_json(path)
-        print(raw)
 
         if not is_config_json_type(raw):
              raise ValueError(
