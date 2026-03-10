@@ -9,8 +9,8 @@ from src.type_defs import (
 
 @dataclass
 class TranslationConfig:
-    buffer_size: int = 50  # Number of lines for writing translations to file
-    batch_size: int = 16  # This is the pack size for the GPU
+    buffer_size: int  # Number of lines for writing translations to file
+    batch_size: int  # This is the pack size for the GPU
 
     _length_language_ratio = {
         (
@@ -19,7 +19,7 @@ class TranslationConfig:
         ): 1.5,  # English → Russian: text is usually longer. Or you can get it from ~ len(translated_tokens) / len(source_tokens)
         # Add other pairs as needed and select the coefficient based on the translation quality obtained
     }
-    token_reserve: int = 20  # Reserve for BOS/EOS/special tokens
+    token_reserve: int  # Reserve for BOS/EOS/special tokens
 
     exclude_keys: ExcludeKeysType = field(
         default_factory=lambda: (

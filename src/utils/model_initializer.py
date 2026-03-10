@@ -2,6 +2,7 @@ import logging
 import torch
 from peft import (
     PeftModel,
+    TaskType,
     get_peft_model,
     PeftMixedModel,
     prepare_model_for_kbit_training,
@@ -145,15 +146,15 @@ class ModelInitializer:
         if not hasattr(model, "enable_input_require_grads"):
             raise NotImplementedError("Model does not support LoRA adapters")
 
-        lora_config = (
-            self.config.lora_config
+        peft_lora_config = (
+            self.config.lora_config.to_peft_config()
             if self.task == "translation"
-            else self.config.ner_config.lora_config
+            else self.config.ner_config.lora_config.to_peft_config(TaskType.TOKEN_CLS)
         )
 
         self.logger.info(f"Applying LoRA configuration for {self.task}")
 
-        peft_model = get_peft_model(model, lora_config)
+        peft_model = get_peft_model(model, peft_lora_config)
         peft_model.print_trainable_parameters()
 
         return peft_model

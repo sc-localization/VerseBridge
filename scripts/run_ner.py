@@ -33,6 +33,13 @@ def parse_args():
         required=True,
         help=help_strings["stage_help"],
     )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help="Path to JSON config profile (default: configs/default.json)",
+    )
 
     args = parser.parse_args()
 
@@ -53,7 +60,7 @@ def main():
     args = parse_args()
 
     # Initialize configurations
-    config_manager = ConfigManager(input_file=args.input_file)
+    config_manager = ConfigManager(input_file=args.input_file, config_path=args.config)
     logger = initialize_logger(config_manager)
 
     logger.info(f"Stage: {args.stage}")

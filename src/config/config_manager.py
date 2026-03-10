@@ -1,5 +1,7 @@
+from pathlib import Path
 from typing import Optional
 
+from .config_profile_loader import ConfigProfileLoader
 from .dataset import DatasetConfig
 from .generation import GenerationConfigParams
 from .language import LanguageConfig
@@ -25,9 +27,12 @@ class ConfigManager:
         src_lang: LangCode = LangCode.EN,
         tgt_lang: LangCode = LangCode.RU,
         input_file: Optional[str] = None,
+        config_path: Optional[Path] = None,
     ):
-        self.dataset_config = DatasetConfig()
-        self.generation_config = GenerationConfigParams()
+        profile = ConfigProfileLoader(config_path).load()
+
+        self.dataset_config = DatasetConfig(**profile.get_section("dataset"))
+        self.generation_config = GenerationConfigParams(**profile.get_section("generation"))
 
         self.base_path_config = BasePathConfig()
         self.translation_path_config = TranslationPathConfig(
@@ -38,16 +43,24 @@ class ConfigManager:
 
         self.lang_config = LanguageConfig(src_lang, tgt_lang)
 
-        self.lora_config = LoraConfig()
+        self.lora_config = LoraConfig(**profile.get_section("lora"))
 
         self.logging_config = LoggingConfig()
         self.model_config = ModelConfig(self.training_path_config)
 
         self.training_config = TranslationTrainingConfig(
-            str(self.base_path_config.logging_dir)
+            str(self.base_path_config.logging_dir),
+            **profile.get_section("training"),
         )
-        self.translation_config = TranslationConfig()
+        self.translation_config = TranslationConfig(**profile.get_section("translation"))
 
+        ner_training_section = profile.get_section("ner_training")
+        ner_section = profile.get_section("ner")
         self.ner_config = NERConfig(
-            training_config=NerTrainingConfig(str(self.base_path_config.logging_dir))
+            training_config=NerTrainingConfig(
+                str(self.base_path_config.logging_dir),
+                **ner_training_section,
+            ),
+            lora_config=self.lora_config,
+            **ner_section,
         )
