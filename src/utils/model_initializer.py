@@ -72,7 +72,11 @@ class ModelInitializer:
         if not model_name:
             raise ValueError("Model name cannot be empty")
 
-        common_params = {"torch_dtype": torch_dtype, "device_map": "auto"}
+        common_params = {
+            "torch_dtype": torch_dtype,
+            "device_map": "auto",
+            "attn_implementation": "sdpa",
+        }
 
         try:
             if self.task == "translation":
@@ -90,7 +94,7 @@ class ModelInitializer:
                         model_name,
                         quantization_config=quantization_config,
                         **common_params,
-                    ).to(self.device)
+                    )
                     model.config.use_cache = False
                     model = prepare_model_for_kbit_training(
                         model,
@@ -107,7 +111,7 @@ class ModelInitializer:
                 else:
                     model = AutoModelForSeq2SeqLM.from_pretrained(
                         model_name, **common_params
-                    ).to(self.device)
+                    )
 
                     return model
 
@@ -117,13 +121,13 @@ class ModelInitializer:
                         model_name,
                         **common_params,
                         **self.config.ner_config.ner_label_config,
-                    ).to(self.device)
+                    )
 
                     return model
                 else:
                     model = AutoModelForTokenClassification.from_pretrained(
                         model_name, **common_params
-                    ).to(self.device)
+                    )
 
                     return model
             else:

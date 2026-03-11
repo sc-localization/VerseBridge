@@ -41,6 +41,9 @@ class Translator:
         self.memory_manager = MemoryManager(self.logger)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
+        self._generation_config = config.generation_config.to_generation_config()
+        self._tgt_lang_token = config.lang_config.tgt_lang_token
+
         self._validate_initialization()
 
     def _validate_initialization(self) -> None:
@@ -56,10 +59,10 @@ class Translator:
         min_new_tokens: Optional[int] = None,
     ) -> Any:
         try:
-            with torch.no_grad(), torch.amp.autocast("cuda"):
+            with torch.inference_mode(), torch.amp.autocast("cuda"):
                 return self.model.generate(
                     **inputs,  # type: ignore
-                    generation_config=self.config.generation_config.to_generation_config(),
+                    generation_config=self._generation_config,
                     eos_token_id=self.tokenizer.eos_token_id,
                     max_new_tokens=max_new_tokens,
                     min_new_tokens=min_new_tokens,
@@ -89,8 +92,7 @@ class Translator:
         cached_params: CachedParamsType,
     ) -> List[TranslatedIniValueType]:
         try:
-            tgt_lang_token = self.config.lang_config.tgt_lang_token
-            prefixed_texts = [f"{tgt_lang_token} {text}" for text in texts]
+            prefixed_texts = [f"{self._tgt_lang_token} {text}" for text in texts]
 
             tokens = self.tokenizer(prefixed_texts, **tokenizer_args).to(self.device)
             input_length = int(torch.sum(tokens.attention_mask, dim=1).max().item())  # type: ignore

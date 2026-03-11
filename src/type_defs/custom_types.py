@@ -250,6 +250,10 @@ class TranslationTrainingConfigType(TypedDict):
     label_names: LabelNamesListType
 
     torch_empty_cache_steps: int
+    group_by_length: bool
+    dataloader_num_workers: int
+    dataloader_pin_memory: bool
+    torch_compile: bool
 
 
 class NerTrainingConfigType(TypedDict):
