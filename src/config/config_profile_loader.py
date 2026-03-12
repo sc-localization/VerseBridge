@@ -64,6 +64,7 @@ class ConfigProfileLoader:
                 "expected a JSON object with section names mapping to objects"
             )
 
+        self._validate(raw, path)
         self._data = raw
         self._convert_enums()
 
@@ -85,10 +86,8 @@ class ConfigProfileLoader:
 
         return None
 
+    # TODO: use file utils
     def _read_json(self, path: Path) -> Any:
-        """
-        TODO: use file utils
-        """
         with path.open("r", encoding="utf-8") as f:
             return json.load(f)
 
@@ -96,7 +95,7 @@ class ConfigProfileLoader:
         unknown = set(data.keys()) - _VALID_SECTIONS
         if unknown:
             self._logger.warning(
-                f"Unknown config sections will be ignored: {', '.join(sorted(unknown))}"
+                f"Unknown config sections in {path} will be ignored: {', '.join(sorted(unknown))}"
             )
 
     def _convert_enums(self) -> None:
