@@ -75,7 +75,7 @@ class ModelInitializer:
         common_params = {
             "torch_dtype": torch_dtype,
             "device_map": "auto",
-            "attn_implementation": "sdpa",
+            "attn_implementation": "auto",
         }
 
         try:

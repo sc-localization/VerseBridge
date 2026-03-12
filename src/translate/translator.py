@@ -59,7 +59,12 @@ class Translator:
         min_new_tokens: Optional[int] = None,
     ) -> Any:
         try:
-            with torch.inference_mode(), torch.amp.autocast("cuda"):
+            with (
+                torch.inference_mode(),
+                torch.amp.autocast(
+                    device_type=self.device, enabled=self.device == "cuda"
+                ),
+            ):
                 return self.model.generate(
                     **inputs,  # type: ignore
                     generation_config=self._generation_config,
