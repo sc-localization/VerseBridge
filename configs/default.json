@@ -6,11 +6,11 @@
         "warmup_ratio": 0.05,
         "max_grad_norm": 0.5,
         "optim": "adamw_bnb_8bit",
-        "lr_scheduler_type": "linear",
+        "lr_scheduler_type": "cosine",
         "bf16": true,
-        "per_device_train_batch_size": 4,
-        "per_device_eval_batch_size": 4,
-        "gradient_accumulation_steps": 32,
+        "per_device_train_batch_size": 8,
+        "per_device_eval_batch_size": 8,
+        "gradient_accumulation_steps": 16,
         "eval_accumulation_steps": 4,
         "eval_strategy": "steps",
         "eval_steps": 500,
@@ -27,7 +27,11 @@
         "report_to": ["tensorboard"],
         "label_smoothing_factor": 0.05,
         "label_names": ["labels"],
-        "torch_empty_cache_steps": 100
+        "torch_empty_cache_steps": 100,
+        "group_by_length": true,
+        "dataloader_num_workers": 4,
+        "dataloader_pin_memory": true,
+        "torch_compile": true
     },
     "ner_training": {
         "num_train_epochs": 3,
@@ -42,7 +46,7 @@
     },
     "translation": {
         "buffer_size": 50,
-        "batch_size": 16,
+        "batch_size": 32,
         "token_reserve": 20
     },
     "generation": {

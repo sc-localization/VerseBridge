@@ -55,7 +55,7 @@ def test_load_default_config(default_config_path: Path):
     assert generation["num_beams"] == 2
 
     translation = loader.get_section("translation")
-    assert translation["batch_size"] == 16
+    assert translation["batch_size"] == 32
 
     dataset = loader.get_section("dataset")
     assert dataset["max_model_length"] == 1024

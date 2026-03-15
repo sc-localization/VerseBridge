@@ -59,11 +59,12 @@ class ConfigProfileLoader:
         raw = self._read_json(path)
 
         if not is_config_json_type(raw):
-             raise ValueError(
+            raise ValueError(
                 f"Invalid config profile structure in {path}: "
                 "expected a JSON object with section names mapping to objects"
             )
-        
+
+        self._validate(raw, path)
         self._data = raw
         self._convert_enums()
 
@@ -85,6 +86,7 @@ class ConfigProfileLoader:
 
         return None
 
+    # TODO: use file utils
     def _read_json(self, path: Path) -> Any:
         with path.open("r", encoding="utf-8") as f:
             return json.load(f)
@@ -93,7 +95,7 @@ class ConfigProfileLoader:
         unknown = set(data.keys()) - _VALID_SECTIONS
         if unknown:
             self._logger.warning(
-                f"Unknown config sections will be ignored: {', '.join(sorted(unknown))}"
+                f"Unknown config sections in {path} will be ignored: {', '.join(sorted(unknown))}"
             )
 
     def _convert_enums(self) -> None:
@@ -113,6 +115,4 @@ class ConfigProfileLoader:
 
             for field_name, enum_cls in field_map.items():
                 if field_name in section:
-                    section[field_name] = [
-                        enum_cls(v) for v in section[field_name]
-                    ]
+                    section[field_name] = [enum_cls(v) for v in section[field_name]]

@@ -83,6 +83,10 @@ class TranslationTrainingConfig:
 
     # === Additional parameters ===
     torch_empty_cache_steps: int
+    group_by_length: bool
+    dataloader_num_workers: int
+    dataloader_pin_memory: bool
+    torch_compile: bool
 
     def to_dict(self) -> TranslationTrainingConfigType:
         config_as_dict = asdict(self)
