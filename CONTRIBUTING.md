@@ -15,7 +15,7 @@ Thank you for your interest in contributing to the Star Citizen Translator proje
    First, create your own copy of the repository by clicking the "Fork" button on GitHub. Then, clone your fork to your local machine:
 
    ```sh
-   git clone https://github.com/sc-localization/VerseBridge.git
+   git clone https://github.com/your-username/VerseBridge.git
    cd VerseBridge
    ```
 
